@@ -1,139 +1,82 @@
 import streamlit as st
-import yaml
-from yaml.loader import SafeLoader
-import streamlit_authenticator as stauth
+from supabase_auth import sign_up, sign_in, reset_password
 
-# -------------------------
-# PAGE CONFIG
-# -------------------------
+st.set_page_config(page_title="AI Problem Discovery Dashboard")
 
-st.set_page_config(page_title="AI Problem Discovery Dashboard", layout="wide")
-
-# -------------------------
-# LOAD CONFIG
-# -------------------------
-
-with open("config.yaml") as file:
-    config = yaml.load(file, Loader=SafeLoader)
-
-authenticator = stauth.Authenticate(
-    config["credentials"],
-    config["cookie"]["name"],
-    config["cookie"]["key"],
-    config["cookie"]["expiry_days"]
-)
-
-# -------------------------
-# SESSION STATE PAGE CONTROL
-# -------------------------
-
+# ---------- Session State ----------
 if "page" not in st.session_state:
     st.session_state.page = "login"
 
-# -------------------------
-# LOGIN PAGE
-# -------------------------
-
+# ---------- LOGIN PAGE ----------
 if st.session_state.page == "login":
 
-    st.title("🔐 Login")
+    st.title("Login")
 
-    authenticator.login("main")
+    email = st.text_input("Email")
+    password = st.text_input("Password", type="password")
 
-    authentication_status = st.session_state.get("authentication_status")
-    name = st.session_state.get("name")
+    if st.button("Login"):
+        result = sign_in(email, password)
 
-    if authentication_status == False:
-        st.error("Username/password incorrect")
+        if "user" in str(result):
+            st.session_state.user = email
+            st.session_state.page = "dashboard"
+            st.rerun()
+        else:
+            st.error("Invalid email or password")
 
-    if authentication_status:
-        st.session_state.page = "dashboard"
+    if st.button("Create Account"):
+        st.session_state.page = "register"
         st.rerun()
 
-    st.divider()
+    if st.button("Forgot Password"):
+        st.session_state.page = "forgot"
+        st.rerun()
 
-    col1, col2 = st.columns(2)
-
-    with col1:
-        if st.button("Create Account"):
-            st.session_state.page = "register"
-            st.rerun()
-
-    with col2:
-        if st.button("Forgot Password"):
-            st.session_state.page = "forgot"
-            st.rerun()
-
-# -------------------------
-# REGISTER PAGE
-# -------------------------
-
+# ---------- REGISTER PAGE ----------
 elif st.session_state.page == "register":
 
-    st.title("📝 Register")
+    st.title("Create Account")
 
-    try:
-        register_status = authenticator.register_user("main")
-    except Exception as e:
-        st.error(e)
-        register_status = None
+    email = st.text_input("Email")
+    password = st.text_input("Password", type="password")
 
-    # show success only when the register form was actually submitted
-    if register_status is True and st.session_state.get("authentication_status") is None:
-        if st.session_state.get("register_submitted", False):
-            st.success("User registered successfully. You can now login.")
+    if st.button("Register"):
+        result = sign_up(email, password)
 
-    # detect register button press
-    if register_status:
-        st.session_state.register_submitted = True
+        if "user" in str(result):
+            st.success("Account created successfully. Please login.")
+        else:
+            st.error("Registration failed")
 
     if st.button("Back to Login"):
         st.session_state.page = "login"
-        st.session_state.register_submitted = False
         st.rerun()
-# -------------------------
-# FORGOT PASSWORD PAGE
-# -------------------------
 
+# ---------- FORGOT PASSWORD ----------
 elif st.session_state.page == "forgot":
 
-    st.title("🔑 Reset Password")
+    st.title("Reset Password")
 
-    try:
-        username_forgot_pw, email_forgot_pw, new_password = authenticator.forgot_password("main")
+    email = st.text_input("Enter your email")
 
-        if username_forgot_pw:
-            st.success("New password generated")
-
-            st.write("Username:", username_forgot_pw)
-            st.write("New Password:", new_password)
-
-        elif username_forgot_pw == False:
-            st.error("Username not found")
-
-    except Exception as e:
-        st.error(e)
+    if st.button("Send Reset Email"):
+        result = reset_password(email)
+        st.success("Password reset email sent")
 
     if st.button("Back to Login"):
         st.session_state.page = "login"
         st.rerun()
 
-# -------------------------
-# DASHBOARD PAGE
-# -------------------------
-
+# ---------- DASHBOARD ----------
 elif st.session_state.page == "dashboard":
 
-    st.title("🚀 AI Problem Discovery Dashboard")
+    st.title("AI Problem Discovery Dashboard")
 
-    authenticator.logout("Logout", "sidebar")
+    st.write("Logged in as:", st.session_state.user)
 
-    name = st.session_state.get("name")
+    st.write("Your AI discovery dashboard will appear here.")
 
-    st.sidebar.write(f"Welcome **{name}**")
-
-    st.success("Login successful")
-
-    st.write("Your dashboard will appear here.")
-
-    st.write("Next we will add AI features and monetization.")
+    if st.button("Logout"):
+        st.session_state.clear()
+        st.rerun()
