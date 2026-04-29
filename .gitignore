@@ -1,0 +1,8 @@
+*.npy
+data/
+data/embeddings.npy
+.env
+*.env
+__pycache__/
+.DS_Store
+venv/
