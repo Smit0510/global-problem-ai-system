@@ -13,7 +13,3 @@ cookie:
   expiry_days: 7
   key: random_signature_key
   name: streamlit_dashboard_cookie
-
-preauthorized:
-  emails:
-    - admin@example.com
