@@ -58,10 +58,10 @@ else:
 
             result = sign_up(email, password)
 
-            if "user" in result:
-                st.success("Account created successfully. You can now login.")
+            if "error" in result:
+                st.error(result["error"])
             else:
-                st.error("Registration failed")
+                st.success("Account created successfully. Check your email if confirmation is required.")
 
     # ---------- RESET PASSWORD ----------
     elif page == "Reset Password":
