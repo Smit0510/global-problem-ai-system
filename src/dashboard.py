@@ -48,7 +48,7 @@ if authentication_status is None:
     st.subheader("Register New Account")
 
     try:
-        if authenticator.register_user("Register"):
+        if authenticator.register_user("main"):
             st.success("User registered successfully")
     except Exception as e:
         st.error(e)
