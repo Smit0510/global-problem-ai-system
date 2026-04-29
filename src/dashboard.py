@@ -72,23 +72,22 @@ elif st.session_state.page == "register":
 
     st.title("📝 Register")
 
-    # create session flag
-    if "show_register_success" not in st.session_state:
-        st.session_state.show_register_success = False
+    # form prevents auto execution on page load
+    with st.form("register_form"):
 
-    try:
-        register_status = authenticator.register_user("main")
+        st.write("Create a new account")
 
-        if register_status:
-            st.session_state.show_register_success = True
+        register_button = st.form_submit_button("Register")
 
-    except Exception as e:
-        st.error(e)
+        if register_button:
+            try:
+                register_status = authenticator.register_user("main")
 
-    # show message only once
-    if st.session_state.show_register_success:
-        st.success("User registered successfully. You can now login.")
-        st.session_state.show_register_success = False
+                if register_status:
+                    st.success("User registered successfully. You can now login.")
+
+            except Exception as e:
+                st.error(e)
 
     if st.button("Back to Login"):
         st.session_state.page = "login"
