@@ -72,11 +72,21 @@ elif st.session_state.page == "register":
 
     st.title("📝 Register")
 
+    if "registered" not in st.session_state:
+        st.session_state.registered = False
+
     try:
-        if authenticator.register_user("main"):
-            st.success("User registered successfully")
+        register_status = authenticator.register_user("main")
+
+        if register_status:
+            st.session_state.registered = True
+
     except Exception as e:
         st.error(e)
+
+    if st.session_state.registered:
+        st.success("User registered successfully")
+        st.info("You can now login.")
 
     if st.button("Back to Login"):
         st.session_state.page = "login"
