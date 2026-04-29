@@ -3,11 +3,11 @@ from supabase_auth import sign_up, sign_in, reset_password
 
 st.set_page_config(page_title="AI Problem Discovery Dashboard")
 
-# ---------- Session State ----------
+# -------- SESSION STATE --------
 if "page" not in st.session_state:
     st.session_state.page = "login"
 
-# ---------- LOGIN PAGE ----------
+# -------- LOGIN PAGE --------
 if st.session_state.page == "login":
 
     st.title("Login")
@@ -18,12 +18,14 @@ if st.session_state.page == "login":
     if st.button("Login"):
         result = sign_in(email, password)
 
-        if "user" in str(result):
+        if "access_token" in result:
             st.session_state.user = email
             st.session_state.page = "dashboard"
             st.rerun()
         else:
             st.error("Invalid email or password")
+
+    st.write("---")
 
     if st.button("Create Account"):
         st.session_state.page = "register"
@@ -33,7 +35,8 @@ if st.session_state.page == "login":
         st.session_state.page = "forgot"
         st.rerun()
 
-# ---------- REGISTER PAGE ----------
+
+# -------- REGISTER PAGE --------
 elif st.session_state.page == "register":
 
     st.title("Create Account")
@@ -44,8 +47,8 @@ elif st.session_state.page == "register":
     if st.button("Register"):
         result = sign_up(email, password)
 
-        if "user" in str(result):
-            st.success("Account created successfully. Please login.")
+        if "user" in result:
+            st.success("Account created. Please login.")
         else:
             st.error("Registration failed")
 
@@ -53,7 +56,8 @@ elif st.session_state.page == "register":
         st.session_state.page = "login"
         st.rerun()
 
-# ---------- FORGOT PASSWORD ----------
+
+# -------- FORGOT PASSWORD --------
 elif st.session_state.page == "forgot":
 
     st.title("Reset Password")
@@ -61,14 +65,15 @@ elif st.session_state.page == "forgot":
     email = st.text_input("Enter your email")
 
     if st.button("Send Reset Email"):
-        result = reset_password(email)
-        st.success("Password reset email sent")
+        reset_password(email)
+        st.success("Password reset email sent.")
 
     if st.button("Back to Login"):
         st.session_state.page = "login"
         st.rerun()
 
-# ---------- DASHBOARD ----------
+
+# -------- DASHBOARD --------
 elif st.session_state.page == "dashboard":
 
     st.title("AI Problem Discovery Dashboard")
