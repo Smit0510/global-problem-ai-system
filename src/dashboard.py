@@ -74,17 +74,23 @@ elif st.session_state.page == "register":
 
     try:
         register_status = authenticator.register_user("main")
-
-        if register_status:
-            st.success("User registered successfully. You can now login.")
-
     except Exception as e:
         st.error(e)
+        register_status = None
+
+    # show success only when the register form was actually submitted
+    if register_status is True and st.session_state.get("authentication_status") is None:
+        if st.session_state.get("register_submitted", False):
+            st.success("User registered successfully. You can now login.")
+
+    # detect register button press
+    if register_status:
+        st.session_state.register_submitted = True
 
     if st.button("Back to Login"):
         st.session_state.page = "login"
+        st.session_state.register_submitted = False
         st.rerun()
-
 # -------------------------
 # FORGOT PASSWORD PAGE
 # -------------------------
