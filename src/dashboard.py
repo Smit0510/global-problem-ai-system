@@ -2,175 +2,214 @@ import streamlit as st
 import pandas as pd
 import os
 import plotly.express as px
+import yaml
+from yaml.loader import SafeLoader
+import streamlit_authenticator as stauth
 
-st.set_page_config(page_title="AI Problem Discovery Dashboard", layout="wide")
+# --------------------------
+# Page configuration
+# --------------------------
 
-st.title("🚀 AI Problem Discovery Dashboard")
-st.write("Discover trending problems and startup opportunities using AI.")
-
-DATA_PATH = "data"
-
-
-def load_csv(file):
-    path = os.path.join(DATA_PATH, file)
-    if os.path.exists(path):
-        return pd.read_csv(path)
-    return None
-
-
-# Load datasets
-discussions = load_csv("discussions_clustered.csv")
-rankings = load_csv("problem_rankings.csv")
-opportunities = load_csv("opportunity_scores.csv")
-ideas = load_csv("startup_ideas.csv")
-market = load_csv("market_analysis.csv")
-
-
-# Stop if no data
-if discussions is None:
-    st.warning("⚠️ Data not found. Please upload CSV files into the data folder.")
-    st.stop()
-
-
-# ----------------------
-# Sidebar Filters
-# ----------------------
-
-st.sidebar.header("Filters")
-
-cluster_filter = "All"
-
-if "cluster" in discussions.columns:
-
-    cluster_options = ["All"] + sorted(
-        discussions["cluster"].astype(str).unique().tolist()
-    )
-
-    cluster_filter = st.sidebar.selectbox(
-        "Select Problem Cluster",
-        cluster_options
-    )
-
-
-filtered_discussions = discussions.copy()
-
-if cluster_filter != "All":
-    filtered_discussions = filtered_discussions[
-        filtered_discussions["cluster"].astype(str) == cluster_filter
-    ]
-
-
-# ----------------------
-# Tabs
-# ----------------------
-
-tab1, tab2, tab3, tab4 = st.tabs(
-    ["📊 Problems", "💡 Startup Ideas", "📈 Opportunities", "📉 Market Analysis"]
+st.set_page_config(
+    page_title="AI Problem Discovery Dashboard",
+    layout="wide"
 )
 
+# --------------------------
+# Load authentication config
+# --------------------------
 
-# ----------------------
-# Problems
-# ----------------------
+with open("config.yaml") as file:
+    config = yaml.load(file, Loader=SafeLoader)
 
-with tab1:
+authenticator = stauth.Authenticate(
+    config["credentials"],
+    config["cookie"]["name"],
+    config["cookie"]["key"],
+    config["cookie"]["expiry_days"]
+)
 
-    st.subheader("Trending Problems")
+# --------------------------
+# Login
+# --------------------------
 
-    if rankings is not None:
+name, authentication_status, username = authenticator.login("Login", "main")
 
-        st.dataframe(rankings)
+if authentication_status == False:
+    st.error("Username or password incorrect")
 
-        numeric_cols = rankings.select_dtypes(include="number").columns
+if authentication_status == None:
+    st.warning("Please enter your username and password")
 
-        if len(numeric_cols) > 0:
+if authentication_status:
 
-            fig = px.bar(
-                rankings.head(10),
-                y=numeric_cols[0],
-                title="Top Problem Scores"
-            )
+    authenticator.logout("Logout", "sidebar")
 
-            st.plotly_chart(fig, use_container_width=True)
+    st.sidebar.write(f"Welcome **{name}**")
 
-    st.subheader("Discussion Data")
+    # --------------------------
+    # Dashboard Title
+    # --------------------------
 
-    st.dataframe(filtered_discussions)
+    st.title("🚀 AI Problem Discovery Dashboard")
+    st.write("Discover trending problems and startup opportunities using AI.")
 
+    DATA_PATH = "data"
 
-# ----------------------
-# Startup Ideas
-# ----------------------
+    # --------------------------
+    # Data loading
+    # --------------------------
 
-with tab2:
-
-    st.subheader("Generated Startup Ideas")
-
-    if ideas is not None:
-
-        st.dataframe(ideas)
-
-        if len(ideas.columns) > 0:
-
-            idea_select = st.selectbox(
-                "Explore Idea",
-                ideas.iloc[:, 0]
-            )
-
-            idea_row = ideas[ideas.iloc[:, 0] == idea_select]
-
-            st.write("### Idea Details")
-
-            st.dataframe(idea_row)
+    def load_csv(file):
+        path = os.path.join(DATA_PATH, file)
+        if os.path.exists(path):
+            return pd.read_csv(path)
+        return None
 
 
-# ----------------------
-# Opportunities
-# ----------------------
+    discussions = load_csv("discussions_clustered.csv")
+    rankings = load_csv("problem_rankings.csv")
+    opportunities = load_csv("opportunity_scores.csv")
+    ideas = load_csv("startup_ideas.csv")
+    market = load_csv("market_analysis.csv")
 
-with tab3:
+    if discussions is None:
+        st.warning("⚠ Data not found. Upload CSV files to the data folder.")
+        st.stop()
 
-    st.subheader("Opportunity Scores")
+    # --------------------------
+    # Sidebar Filters
+    # --------------------------
 
-    if opportunities is not None:
+    st.sidebar.header("Filters")
 
-        st.dataframe(opportunities)
+    cluster_filter = "All"
 
-        numeric_cols = opportunities.select_dtypes(include="number").columns
+    if "cluster" in discussions.columns:
 
-        if len(numeric_cols) > 0:
+        cluster_options = ["All"] + sorted(
+            discussions["cluster"].astype(str).unique().tolist()
+        )
 
-            fig = px.bar(
-                opportunities.head(10),
-                y=numeric_cols[0],
-                title="Top Opportunities"
-            )
+        cluster_filter = st.sidebar.selectbox(
+            "Select Problem Cluster",
+            cluster_options
+        )
 
-            st.plotly_chart(fig, use_container_width=True)
+    filtered_discussions = discussions.copy()
 
+    if cluster_filter != "All":
+        filtered_discussions = filtered_discussions[
+            filtered_discussions["cluster"].astype(str) == cluster_filter
+        ]
 
-# ----------------------
-# Market Analysis
-# ----------------------
+    # --------------------------
+    # Tabs
+    # --------------------------
 
-with tab4:
+    tab1, tab2, tab3, tab4 = st.tabs(
+        ["📊 Problems", "💡 Startup Ideas", "📈 Opportunities", "📉 Market Analysis"]
+    )
 
-    st.subheader("Market Analysis")
+    # --------------------------
+    # Problems Tab
+    # --------------------------
 
-    if market is not None:
+    with tab1:
 
-        st.dataframe(market)
+        st.subheader("Trending Problems")
 
-        numeric_cols = market.select_dtypes(include="number").columns
+        if rankings is not None:
 
-        if len(numeric_cols) >= 2:
+            st.dataframe(rankings)
 
-            fig = px.scatter(
-                market,
-                x=numeric_cols[0],
-                y=numeric_cols[1],
-                size=numeric_cols[0],
-                title="Market Opportunity Map"
-            )
+            numeric_cols = rankings.select_dtypes(include="number").columns
 
-            st.plotly_chart(fig, use_container_width=True)
+            if len(numeric_cols) > 0:
+
+                fig = px.bar(
+                    rankings.head(10),
+                    y=numeric_cols[0],
+                    title="Top Problem Scores"
+                )
+
+                st.plotly_chart(fig, use_container_width=True)
+
+        st.subheader("Discussion Data")
+
+        st.dataframe(filtered_discussions)
+
+    # --------------------------
+    # Startup Ideas Tab
+    # --------------------------
+
+    with tab2:
+
+        st.subheader("Generated Startup Ideas")
+
+        if ideas is not None:
+
+            st.dataframe(ideas)
+
+            if len(ideas.columns) > 0:
+
+                idea_select = st.selectbox(
+                    "Explore Idea",
+                    ideas.iloc[:, 0]
+                )
+
+                idea_row = ideas[ideas.iloc[:, 0] == idea_select]
+
+                st.write("### Idea Details")
+
+                st.dataframe(idea_row)
+
+    # --------------------------
+    # Opportunities Tab
+    # --------------------------
+
+    with tab3:
+
+        st.subheader("Opportunity Scores")
+
+        if opportunities is not None:
+
+            st.dataframe(opportunities)
+
+            numeric_cols = opportunities.select_dtypes(include="number").columns
+
+            if len(numeric_cols) > 0:
+
+                fig = px.bar(
+                    opportunities.head(10),
+                    y=numeric_cols[0],
+                    title="Top Opportunities"
+                )
+
+                st.plotly_chart(fig, use_container_width=True)
+
+    # --------------------------
+    # Market Analysis Tab
+    # --------------------------
+
+    with tab4:
+
+        st.subheader("Market Analysis")
+
+        if market is not None:
+
+            st.dataframe(market)
+
+            numeric_cols = market.select_dtypes(include="number").columns
+
+            if len(numeric_cols) >= 2:
+
+                fig = px.scatter(
+                    market,
+                    x=numeric_cols[0],
+                    y=numeric_cols[1],
+                    size=numeric_cols[0],
+                    title="Market Opportunity Map"
+                )
+
+                st.plotly_chart(fig, use_container_width=True)
