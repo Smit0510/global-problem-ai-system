@@ -8,7 +8,7 @@ def load_data():
 
     if not os.path.exists("data/discussions_clustered.csv"):
         st.write("Generating data...")
-        subprocess.run(["python", "advanced_run_pipeline.py"])
+        subprocess.run(["python", "src/advanced_run_pipeline.py"])
 
     discussions = pd.read_csv("data/discussions_clustered.csv")
     rankings = pd.read_csv("data/problem_rankings.csv")
