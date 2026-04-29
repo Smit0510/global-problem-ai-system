@@ -3,27 +3,18 @@ import yaml
 from yaml.loader import SafeLoader
 import streamlit_authenticator as stauth
 
-# ---------------------------
-# Page configuration
-# ---------------------------
+# -------------------------
+# PAGE CONFIG
+# -------------------------
 
-st.set_page_config(
-    page_title="AI Problem Discovery Dashboard",
-    layout="wide"
-)
+st.set_page_config(page_title="AI Problem Discovery Dashboard", layout="wide")
 
-st.title("🚀 AI Problem Discovery Dashboard")
-
-# ---------------------------
-# Load config file
-# ---------------------------
+# -------------------------
+# LOAD CONFIG
+# -------------------------
 
 with open("config.yaml") as file:
     config = yaml.load(file, Loader=SafeLoader)
-
-# ---------------------------
-# Initialize authenticator
-# ---------------------------
 
 authenticator = stauth.Authenticate(
     config["credentials"],
@@ -32,23 +23,54 @@ authenticator = stauth.Authenticate(
     config["cookie"]["expiry_days"]
 )
 
-# ---------------------------
-# LOGIN
-# ---------------------------
+# -------------------------
+# SESSION STATE PAGE CONTROL
+# -------------------------
 
-authenticator.login("main")
+if "page" not in st.session_state:
+    st.session_state.page = "login"
 
-authentication_status = st.session_state.get("authentication_status")
-name = st.session_state.get("name")
-username = st.session_state.get("username")
+# -------------------------
+# LOGIN PAGE
+# -------------------------
 
-# ---------------------------
-# REGISTER USER
-# ---------------------------
+if st.session_state.page == "login":
 
-if authentication_status is None:
+    st.title("🔐 Login")
 
-    st.subheader("Register New Account")
+    authenticator.login("main")
+
+    authentication_status = st.session_state.get("authentication_status")
+    name = st.session_state.get("name")
+
+    if authentication_status == False:
+        st.error("Username/password incorrect")
+
+    if authentication_status:
+        st.session_state.page = "dashboard"
+        st.rerun()
+
+    st.divider()
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        if st.button("Create Account"):
+            st.session_state.page = "register"
+            st.rerun()
+
+    with col2:
+        if st.button("Forgot Password"):
+            st.session_state.page = "forgot"
+            st.rerun()
+
+# -------------------------
+# REGISTER PAGE
+# -------------------------
+
+elif st.session_state.page == "register":
+
+    st.title("📝 Register")
 
     try:
         if authenticator.register_user("main"):
@@ -56,21 +78,26 @@ if authentication_status is None:
     except Exception as e:
         st.error(e)
 
-# ---------------------------
-# FORGOT PASSWORD
-# ---------------------------
+    if st.button("Back to Login"):
+        st.session_state.page = "login"
+        st.rerun()
 
-if authentication_status is None:
+# -------------------------
+# FORGOT PASSWORD PAGE
+# -------------------------
 
-    st.subheader("Forgot Password")
+elif st.session_state.page == "forgot":
+
+    st.title("🔑 Reset Password")
 
     try:
-        username_forgot_pw, email_forgot_password, random_password = authenticator.forgot_password("main")
+        username_forgot_pw, email_forgot_pw, new_password = authenticator.forgot_password("main")
 
         if username_forgot_pw:
-            st.success("New password generated successfully")
+            st.success("New password generated")
+
             st.write("Username:", username_forgot_pw)
-            st.write("New Password:", random_password)
+            st.write("New Password:", new_password)
 
         elif username_forgot_pw == False:
             st.error("Username not found")
@@ -78,23 +105,26 @@ if authentication_status is None:
     except Exception as e:
         st.error(e)
 
-# ---------------------------
-# LOGIN STATUS
-# ---------------------------
+    if st.button("Back to Login"):
+        st.session_state.page = "login"
+        st.rerun()
 
-if authentication_status == False:
-    st.error("Username/password incorrect")
+# -------------------------
+# DASHBOARD PAGE
+# -------------------------
 
-elif authentication_status:
+elif st.session_state.page == "dashboard":
+
+    st.title("🚀 AI Problem Discovery Dashboard")
 
     authenticator.logout("Logout", "sidebar")
 
+    name = st.session_state.get("name")
+
     st.sidebar.write(f"Welcome **{name}**")
 
-    st.success("Logged in successfully")
+    st.success("Login successful")
 
-    st.header("Dashboard")
-
-    st.write("This is your AI Problem Discovery Dashboard.")
+    st.write("Your dashboard will appear here.")
 
     st.write("Next we will add AI features and monetization.")
