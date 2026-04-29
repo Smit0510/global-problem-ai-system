@@ -10,4 +10,4 @@ praw
 plotly
 pyyaml
 streamlit-authenticator
-supabase
+supabase==2.4.0
