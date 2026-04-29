@@ -72,22 +72,14 @@ elif st.session_state.page == "register":
 
     st.title("📝 Register")
 
-    # form prevents auto execution on page load
-    with st.form("register_form"):
+    try:
+        register_status = authenticator.register_user("main")
 
-        st.write("Create a new account")
+        if register_status:
+            st.success("User registered successfully. You can now login.")
 
-        register_button = st.form_submit_button("Register")
-
-        if register_button:
-            try:
-                register_status = authenticator.register_user("main")
-
-                if register_status:
-                    st.success("User registered successfully. You can now login.")
-
-            except Exception as e:
-                st.error(e)
+    except Exception as e:
+        st.error(e)
 
     if st.button("Back to Login"):
         st.session_state.page = "login"
