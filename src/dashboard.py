@@ -72,24 +72,26 @@ elif st.session_state.page == "register":
 
     st.title("📝 Register")
 
-    if "register_clicked" not in st.session_state:
-        st.session_state.register_clicked = False
+    # create session flag
+    if "show_register_success" not in st.session_state:
+        st.session_state.show_register_success = False
 
     try:
         register_status = authenticator.register_user("main")
 
         if register_status:
-            st.session_state.register_clicked = True
+            st.session_state.show_register_success = True
 
     except Exception as e:
         st.error(e)
 
-    if st.session_state.register_clicked:
+    # show message only once
+    if st.session_state.show_register_success:
         st.success("User registered successfully. You can now login.")
+        st.session_state.show_register_success = False
 
     if st.button("Back to Login"):
         st.session_state.page = "login"
-        st.session_state.register_clicked = False
         st.rerun()
 
 # -------------------------
