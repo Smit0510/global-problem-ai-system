@@ -33,14 +33,18 @@ authenticator = stauth.Authenticate(
 # Login
 # --------------------------
 
-# Login widget
-name, authentication_status, username = authenticator.login("main")
+# Login
+authenticator.login("main")
+
+authentication_status = st.session_state.get("authentication_status")
+name = st.session_state.get("name")
+username = st.session_state.get("username")
 
 if authentication_status == False:
     st.error("Username or password incorrect")
 
-elif authentication_status == None:
-    st.warning("Please enter username and password")
+elif authentication_status is None:
+    st.warning("Please enter your username and password")
 
 elif authentication_status:
     authenticator.logout("Logout", "sidebar")
