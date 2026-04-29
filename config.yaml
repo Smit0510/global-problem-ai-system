@@ -1,0 +1,19 @@
+credentials:
+  usernames:
+    admin:
+      email: admin@example.com
+      name: Admin User
+      password: admin123
+    demo:
+      email: demo@example.com
+      name: Demo User
+      password: demo123
+
+cookie:
+  expiry_days: 7
+  key: random_signature_key
+  name: streamlit_dashboard_cookie
+
+preauthorized:
+  emails:
+    - admin@example.com
