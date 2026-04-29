@@ -3,6 +3,6 @@ pandas
 numpy
 scikit-learn
 requests
-streamlit
+streamlit==1.33.0
 supabase==2.4.0
 httpx==0.24.1
