@@ -1,8 +1,9 @@
+import streamlit as st
 import os
 import pandas as pd
 import subprocess
-import streamlit as st
 
+st.title("AI Problem Discovery Dashboard")
 @st.cache_data
 def load_data():
 
