@@ -18,7 +18,7 @@ def load_csv(file):
     return None
 
 
-# Load data
+# Load datasets
 discussions = load_csv("discussions_clustered.csv")
 rankings = load_csv("problem_rankings.csv")
 opportunities = load_csv("opportunity_scores.csv")
@@ -26,21 +26,30 @@ ideas = load_csv("startup_ideas.csv")
 market = load_csv("market_analysis.csv")
 
 
+# Stop if no data
 if discussions is None:
-    st.warning("⚠️ No data found. Upload CSV files to the data folder.")
+    st.warning("⚠️ Data not found. Please upload CSV files into the data folder.")
     st.stop()
 
 
-# Sidebar filters
+# ----------------------
+# Sidebar Filters
+# ----------------------
+
 st.sidebar.header("Filters")
 
+cluster_filter = "All"
+
 if "cluster" in discussions.columns:
+
+    cluster_options = ["All"] + sorted(
+        discussions["cluster"].astype(str).unique().tolist()
+    )
+
     cluster_filter = st.sidebar.selectbox(
         "Select Problem Cluster",
-        ["All"] + sorted(discussions["cluster"].astype(str).unique().tolist())
+        cluster_options
     )
-else:
-    cluster_filter = "All"
 
 
 filtered_discussions = discussions.copy()
@@ -51,96 +60,116 @@ if cluster_filter != "All":
     ]
 
 
+# ----------------------
 # Tabs
+# ----------------------
+
 tab1, tab2, tab3, tab4 = st.tabs(
     ["📊 Problems", "💡 Startup Ideas", "📈 Opportunities", "📉 Market Analysis"]
 )
 
 
-# -------------------
-# Problems Tab
-# -------------------
+# ----------------------
+# Problems
+# ----------------------
 
 with tab1:
 
     st.subheader("Trending Problems")
 
     if rankings is not None:
+
         st.dataframe(rankings)
 
-        if "score" in rankings.columns:
+        numeric_cols = rankings.select_dtypes(include="number").columns
+
+        if len(numeric_cols) > 0:
+
             fig = px.bar(
                 rankings.head(10),
-                x=rankings.columns[0],
-                y="score",
+                y=numeric_cols[0],
                 title="Top Problem Scores"
             )
+
             st.plotly_chart(fig, use_container_width=True)
 
     st.subheader("Discussion Data")
+
     st.dataframe(filtered_discussions)
 
 
-# -------------------
-# Startup Ideas Tab
-# -------------------
+# ----------------------
+# Startup Ideas
+# ----------------------
 
 with tab2:
 
     st.subheader("Generated Startup Ideas")
 
     if ideas is not None:
+
         st.dataframe(ideas)
 
-        if "idea" in ideas.columns:
-            idea_select = st.selectbox("Explore Idea", ideas["idea"])
+        if len(ideas.columns) > 0:
 
-            idea_row = ideas[ideas["idea"] == idea_select]
+            idea_select = st.selectbox(
+                "Explore Idea",
+                ideas.iloc[:, 0]
+            )
+
+            idea_row = ideas[ideas.iloc[:, 0] == idea_select]
 
             st.write("### Idea Details")
-            st.write(idea_row)
+
+            st.dataframe(idea_row)
 
 
-# -------------------
-# Opportunities Tab
-# -------------------
+# ----------------------
+# Opportunities
+# ----------------------
 
 with tab3:
 
     st.subheader("Opportunity Scores")
 
     if opportunities is not None:
+
         st.dataframe(opportunities)
 
-        if "score" in opportunities.columns:
+        numeric_cols = opportunities.select_dtypes(include="number").columns
+
+        if len(numeric_cols) > 0:
+
             fig = px.bar(
                 opportunities.head(10),
-                x=opportunities.columns[0],
-                y="score",
+                y=numeric_cols[0],
                 title="Top Opportunities"
             )
 
             st.plotly_chart(fig, use_container_width=True)
 
 
-# -------------------
-# Market Analysis Tab
-# -------------------
+# ----------------------
+# Market Analysis
+# ----------------------
 
 with tab4:
 
     st.subheader("Market Analysis")
 
     if market is not None:
+
         st.dataframe(market)
 
-        if "market_size" in market.columns:
+        numeric_cols = market.select_dtypes(include="number").columns
+
+        if len(numeric_cols) >= 2:
 
             fig = px.scatter(
                 market,
-                x="market_size",
-                y="competition",
-                size="market_size",
+                x=numeric_cols[0],
+                y=numeric_cols[1],
+                size=numeric_cols[0],
                 title="Market Opportunity Map"
             )
 
