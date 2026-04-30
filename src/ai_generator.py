@@ -1,62 +1,36 @@
 import os
-import random
+from openai import OpenAI
 
-# Try OpenAI (optional)
-try:
-    from openai import OpenAI
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    USE_AI = True
-except:
-    USE_AI = False
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+def score_problem(problem):
 
-def generate_problems(topic="startup problems"):
+    prompt = f"""
+    Rate this startup problem from 1 to 10.
 
-    # ---------- TRY REAL AI ----------
-    if USE_AI:
-        try:
-            prompt = f"""
-            Generate 5 real-world problems.
-            Topic: {topic}
+    Consider:
+    - Pain level
+    - Frequency
+    - Market size
 
-            Rules:
-            - Short (1 sentence)
-            - Realistic
-            """
+    Only return a number.
 
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[{"role": "user", "content": prompt}]
-            )
+    Problem: {problem}
+    """
 
-            text = response.choices[0].message.content
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
 
-            problems = text.split("\n")
+        score_text = response.choices[0].message.content.strip()
 
-            clean = [
-                p.strip("- ").strip()
-                for p in problems
-                if len(p.strip()) > 5
-            ]
+        # extract number safely
+        score = float(score_text.replace("/10", "").strip())
 
-            if len(clean) > 0:
-                return clean
+        return score
 
-        except Exception as e:
-            print("AI failed, using fallback:", e)
-
-    # ---------- FALLBACK (FREE) ----------
-    sample_problems = [
-        "People forget to pay bills on time",
-        "Students struggle to stay focused while studying",
-        "Small businesses don’t know how to market online",
-        "Freelancers struggle to find consistent clients",
-        "People waste too much time on social media",
-        "Gym beginners don’t know what workout to follow",
-        "Startups fail to validate ideas early",
-        "People find it hard to save money",
-        "Remote workers feel isolated and unproductive",
-        "Users forget passwords and get locked out often"
-    ]
-
-    return random.sample(sample_problems, 5)
+    except Exception as e:
+        print("AI ERROR:", e)
+        return None
