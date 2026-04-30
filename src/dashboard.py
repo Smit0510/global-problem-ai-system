@@ -22,13 +22,18 @@ def show_dashboard():
     problem = st.text_input("Enter a problem")
 
     if st.button("Save Problem"):
+
         if problem:
-            insert_problem(
+            result = insert_problem(
                 problem,
                 st.session_state.token,
                 st.session_state.user
             )
-            st.success("Problem saved!")
+
+            if isinstance(result, dict) and "error" in result:
+                st.error(f"Error: {result}")
+            else:
+                st.success("Problem saved!")
         else:
             st.warning("Please enter a problem")
 
