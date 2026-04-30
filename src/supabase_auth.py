@@ -1,44 +1,34 @@
 import streamlit as st
-from supabase import create_client
+import requests
 
 SUPABASE_URL = st.secrets["SUPABASE_URL"]
 SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+BASE_URL = f"{SUPABASE_URL}/auth/v1"
 
 
-# -------- SIGN UP --------
 def sign_up(email, password):
-    try:
-        response = supabase.auth.sign_up(
-            {
-                "email": email,
-                "password": password
-            }
-        )
-        return response
-    except Exception as e:
-        return {"error": str(e)}
+    res = requests.post(
+        f"{BASE_URL}/signup",
+        headers={"apikey": SUPABASE_KEY},
+        json={"email": email, "password": password}
+    )
+    return res.json()
 
 
-# -------- SIGN IN --------
 def sign_in(email, password):
-    try:
-        response = supabase.auth.sign_in_with_password(
-            {
-                "email": email,
-                "password": password
-            }
-        )
-        return response
-    except Exception as e:
-        return {"error": str(e)}
+    res = requests.post(
+        f"{BASE_URL}/token?grant_type=password",
+        headers={"apikey": SUPABASE_KEY},
+        json={"email": email, "password": password}
+    )
+    return res.json()
 
 
-# -------- RESET PASSWORD --------
 def reset_password(email):
-    try:
-        supabase.auth.reset_password_email(email)
-        return {"success": True}
-    except Exception as e:
-        return {"error": str(e)}
+    res = requests.post(
+        f"{BASE_URL}/recover",
+        headers={"apikey": SUPABASE_KEY},
+        json={"email": email}
+    )
+    return res.json()
