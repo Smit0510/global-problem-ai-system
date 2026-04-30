@@ -1,21 +1,18 @@
 import os
 from openai import OpenAI
 
-# Initialize client
 client = OpenAI()
 
 def generate_problems(topic="startup problems"):
     try:
         prompt = f"""
-        Generate 5 real-world startup problems.
-
+        Generate 5 real-world problems.
         Topic: {topic}
 
         Rules:
         - One line each
         - No numbering
-        - No explanations
-        - Just plain problems
+        - No explanation
         """
 
         response = client.chat.completions.create(
@@ -27,16 +24,13 @@ def generate_problems(topic="startup problems"):
 
         text = response.choices[0].message.content
 
-        # Clean output
-        problems = text.split("\n")
-
-        clean_problems = [
-            p.replace("-", "").strip()
-            for p in problems
+        problems = [
+            p.strip("- ").strip()
+            for p in text.split("\n")
             if len(p.strip()) > 5
         ]
 
-        return clean_problems
+        return problems
 
     except Exception as e:
         return [f"Error: {str(e)}"]
