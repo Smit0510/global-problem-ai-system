@@ -3,13 +3,16 @@ import streamlit as st
 # ✅ MUST BE FIRST
 st.set_page_config(page_title="AI Problem Dashboard")
 
-from supabase_auth import sign_up, sign_in, reset_password, insert_problem, get_problems, delete_problem
+from supabase_auth import (
+    sign_up,
+    sign_in,
+    reset_password,
+    insert_problem,
+    get_problems,
+    delete_problem,
+)
+
 from ai_generator import generate_problems
-
-
-# ✅ Test button (moved BELOW config)
-if st.button("Test AI"):
-    st.write(generate_problems("students"))
 
 
 # ---------------- SESSION ----------------
@@ -19,37 +22,69 @@ if "user" not in st.session_state:
 if "token" not in st.session_state:
     st.session_state.token = None
 
+if "problem_input" not in st.session_state:
+    st.session_state.problem_input = ""
+
 
 # ---------------- DASHBOARD ----------------
 def show_dashboard():
     st.title("🚀 AI Problem Discovery Dashboard")
     st.success(f"Logged in as {st.session_state.user}")
 
-    # ---- ADD PROBLEM ----
+    # -------- ADD PROBLEM --------
     st.subheader("➕ Add Problem")
 
-    problem = st.text_input("Enter a real-world problem")
+    problem = st.text_input(
+        "Enter a real-world problem",
+        value=st.session_state.problem_input
+    )
 
-    if st.button("Save Problem"):
+    col1, col2 = st.columns([2, 1])
 
-        if problem and len(problem.strip()) > 5:
+    # ---- SAVE ----
+    with col1:
+        if st.button("💾 Save Problem"):
 
-            result = insert_problem(
-                problem.strip(),
-                st.session_state.token,
-                st.session_state.user
-            )
+            if problem and len(problem.strip()) > 5:
 
-            if isinstance(result, dict) and "error" in result:
-                st.error(f"Error: {result}")
-            else:
+                insert_problem(
+                    problem.strip(),
+                    st.session_state.token,
+                    st.session_state.user
+                )
+
                 st.success("Problem saved!")
+                st.session_state.problem_input = ""
                 st.rerun()
 
-        else:
-            st.warning("Enter a meaningful problem (min 5 characters)")
+            else:
+                st.warning("Enter meaningful problem")
 
-    # ---- SHOW PROBLEMS ----
+    # ---- AI GENERATE ----
+    with col2:
+        if st.button("🤖 Suggest Problems"):
+            st.session_state.ai_problems = generate_problems("startup")
+
+    # -------- AI SUGGESTIONS --------
+    if "ai_problems" in st.session_state:
+
+        st.subheader("💡 AI Suggestions")
+
+        for i, p in enumerate(st.session_state.ai_problems):
+
+            col1, col2 = st.columns([4, 1])
+
+            with col1:
+                st.write(f"👉 {p}")
+
+            with col2:
+                if st.button("Use", key=f"use_{i}"):
+                    st.session_state.problem_input = p
+                    st.rerun()
+
+    st.markdown("---")
+
+    # -------- SHOW PROBLEMS --------
     st.subheader("📋 Your Problems")
 
     data = get_problems(st.session_state.token)
@@ -70,7 +105,9 @@ def show_dashboard():
     else:
         st.info("No problems yet")
 
-    # ---- LOGOUT ----
+    st.markdown("---")
+
+    # -------- LOGOUT --------
     if st.button("Logout"):
         st.session_state.user = None
         st.session_state.token = None
@@ -88,7 +125,7 @@ else:
         horizontal=True
     )
 
-    # ---------- LOGIN ----------
+    # -------- LOGIN --------
     if page == "Login":
 
         st.subheader("Login")
@@ -108,7 +145,7 @@ else:
             else:
                 st.error(result.get("error_description", "Invalid email or password"))
 
-    # ---------- REGISTER ----------
+    # -------- REGISTER --------
     elif page == "Register":
 
         st.subheader("Create Account")
@@ -128,7 +165,7 @@ else:
             else:
                 st.error(result.get("error_description", "Registration failed"))
 
-    # ---------- RESET PASSWORD ----------
+    # -------- RESET PASSWORD --------
     elif page == "Reset Password":
 
         st.subheader("Reset Password")
