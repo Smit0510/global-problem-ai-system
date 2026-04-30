@@ -1,5 +1,5 @@
 import streamlit as st
-from supabase_auth import sign_up, sign_in, reset_password, insert_problem, get_problems
+from supabase_auth import sign_up, sign_in, reset_password, insert_problem, get_problems, delete_problem
 
 st.set_page_config(page_title="AI Problem Dashboard")
 
@@ -19,13 +19,15 @@ def show_dashboard():
     # ---- ADD PROBLEM ----
     st.subheader("➕ Add Problem")
 
-    problem = st.text_input("Enter a problem")
+    problem = st.text_input("Enter a real-world problem")
 
     if st.button("Save Problem"):
 
-        if problem:
+        # ✅ Better validation
+        if problem and len(problem.strip()) > 5:
+
             result = insert_problem(
-                problem,
+                problem.strip(),
                 st.session_state.token,
                 st.session_state.user
             )
@@ -34,8 +36,9 @@ def show_dashboard():
                 st.error(f"Error: {result}")
             else:
                 st.success("Problem saved!")
+
         else:
-            st.warning("Please enter a problem")
+            st.warning("Enter a meaningful problem (min 5 characters)")
 
     # ---- SHOW PROBLEMS ----
     st.subheader("📋 Your Problems")
@@ -43,8 +46,18 @@ def show_dashboard():
     data = get_problems(st.session_state.token)
 
     if isinstance(data, list) and len(data) > 0:
+
         for row in data:
-            st.write(f"• {row['problem']}")
+            col1, col2 = st.columns([4, 1])
+
+            with col1:
+                st.markdown(f"- {row['problem']}")
+
+            with col2:
+                if st.button("❌", key=row["id"]):
+                    delete_problem(row["id"], st.session_state.token)
+                    st.rerun()
+
     else:
         st.info("No problems yet")
 
