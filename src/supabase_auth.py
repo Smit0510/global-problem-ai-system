@@ -139,3 +139,19 @@ def update_ai_score(problem_id, score, token):
     )
 
     return res.status_code
+
+def update_ai_score(problem_id, score, token):
+    import requests
+
+    res = requests.patch(
+        f"{SUPABASE_URL}/rest/v1/problems?id=eq.{problem_id}",
+        headers={
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+            "Prefer": "return=representation"
+        },
+        json={"ai_score": score}
+    )
+
+    return res.json()
