@@ -1,4 +1,5 @@
 import streamlit as st
+from supabase_auth import get_trending_problems
 from supabase_auth import (
     sign_up,
     sign_in,
