@@ -12,6 +12,9 @@ from ai_scorer import score_problem
 st.set_page_config(page_title="AI Startup Builder", layout="wide")
 
 # ---------------- SESSION ----------------
+if "generated_plans" not in st.session_state:
+    st.session_state.generated_plans = {}
+
 if "user" not in st.session_state:
     st.session_state.user = None
 
@@ -29,6 +32,7 @@ def show_dashboard():
 
     st.success(f"Logged in as {st.session_state.user}")
 
+    # ---- ADD PROBLEM ----
     st.subheader("➕ Add Problem")
 
     problem = st.text_input(
@@ -45,6 +49,7 @@ def show_dashboard():
         else:
             st.error("Enter valid problem")
 
+    # ---- AI SUGGESTIONS ----
     st.subheader("💡 AI Suggestions")
 
     if st.button("Generate Ideas"):
@@ -52,6 +57,7 @@ def show_dashboard():
         for idea in ideas:
             st.markdown(f"💡 {idea}")
 
+    # ---- TRENDING ----
     st.subheader("🔥 Trending")
 
     trending = get_trending_problems(st.session_state.token)
@@ -63,6 +69,7 @@ def show_dashboard():
             👍 {row.get('votes',0)}  
             """)
 
+    # ---- BEST IDEAS ----
     st.subheader("🏆 Best Startup Ideas")
 
     data = get_problems(st.session_state.token)
@@ -80,10 +87,12 @@ def show_dashboard():
             🤖 {row.get('ai_score',0)} | 👍 {row.get('votes',0)}
             """)
 
+    # ---- SEARCH ----
     st.subheader("🔍 Search & Filter")
 
     search = st.text_input("Search")
 
+    # ---- LIST ----
     st.subheader("📋 Your Problems")
 
     if isinstance(data, list):
@@ -99,6 +108,7 @@ def show_dashboard():
             👍 {row.get('votes',0)}
             """)
 
+            # ---- SCORE ----
             if row.get("ai_score"):
                 st.write(f"🤖 Score: {row['ai_score']}")
             else:
@@ -110,6 +120,7 @@ def show_dashboard():
                     else:
                         st.error("AI failed")
 
+            # ---- ACTIONS ----
             col1, col2, col3 = st.columns(3)
 
             with col1:
@@ -128,13 +139,18 @@ def show_dashboard():
                     st.info("Generating...")
 
                     import json
-                    from fpdf import FPDF
 
-                    plan_raw = generate_full_startup_plan(row["problem"])
+                    # ✅ Store per problem
+                    if row["id"] not in st.session_state.generated_plans:
+                        st.session_state.generated_plans[row["id"]] = generate_full_startup_plan(row["problem"])
 
+                    plan_raw = st.session_state.generated_plans[row["id"]]
+
+                    # ---- ERROR HANDLING ----
                     if not plan_raw or "ERROR:" in str(plan_raw):
                         st.error("AI failed")
                         st.write(plan_raw)
+
                     else:
                         try:
                             plan = json.loads(plan_raw)
@@ -157,22 +173,27 @@ def show_dashboard():
                             st.json(plan["tech_stack"])
                             st.write(plan["go_to_market"])
 
-                            if st.button("Download PDF", key=f"pdf{row['id']}"):
+                            # ✅ PDF DOWNLOAD FIX
+                            from fpdf import FPDF
 
-                                pdf = FPDF()
-                                pdf.add_page()
-                                pdf.set_font("Arial", size=12)
-                                pdf.multi_cell(0, 10, plan_raw)
+                            pdf = FPDF()
+                            pdf.add_page()
+                            pdf.set_font("Arial", size=12)
+                            pdf.multi_cell(0, 10, plan_raw)
 
-                                filename = f"startup_{row['id']}.pdf"
-                                pdf.output(filename)
+                            pdf_bytes = pdf.output(dest='S').encode('latin-1')
 
-                                with open(filename, "rb") as f:
-                                    st.download_button("Download", f, file_name=filename)
+                            st.download_button(
+                                label="📄 Download PDF",
+                                data=pdf_bytes,
+                                file_name=f"startup_{row['id']}.pdf",
+                                mime="application/pdf"
+                            )
 
                         except:
                             st.write(plan_raw)
 
+    # ---- LOGOUT ----
     if st.button("Logout"):
         st.session_state.user = None
         st.session_state.token = None
@@ -182,6 +203,7 @@ def show_dashboard():
 # ---------------- AUTH ----------------
 if st.session_state.user:
     show_dashboard()
+
 else:
     page = st.radio("Select Page", ["Login", "Register", "Reset Password"], horizontal=True)
 
