@@ -3,15 +3,13 @@ from openai import OpenAI
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+# ---------------- PROBLEMS ----------------
 def generate_problems(topic="startup problems"):
     try:
         prompt = f"""
         Generate 5 real-world startup problems.
         Topic: {topic}
-
-        Rules:
-        - Short (1 sentence)
-        - Realistic
+        Short and realistic.
         """
 
         res = client.chat.completions.create(
@@ -23,29 +21,29 @@ def generate_problems(topic="startup problems"):
         return [p.strip("- ").strip() for p in text.split("\n") if len(p.strip()) > 5]
 
     except:
-        # fallback (no API)
         return [
             "People forget to pay bills on time",
-            "Students struggle to stay focused while studying",
-            "Freelancers struggle to find consistent clients",
+            "Students struggle to stay focused",
+            "Freelancers struggle to find clients",
             "People find it hard to save money",
-            "Gym beginners don’t know what workout to follow"
+            "Gym beginners don’t know workouts"
         ]
 
 
-# 🔥 NEW FEATURE
+# ---------------- STARTUP KIT ----------------
 def generate_startup_kit(problem):
-
     try:
         prompt = f"""
-        Based on this problem:
+        Problem: {problem}
 
-        {problem}
-
-        Generate:
-        1. Landing page headline (1 line)
-        2. Short product description (2 lines)
-        3. Investor pitch (3 lines)
+        Create:
+        - Startup name
+        - Solution
+        - Users
+        - Features
+        - Monetization
+        - Steps to build
+        Keep simple.
         """
 
         res = client.chat.completions.create(
@@ -56,13 +54,81 @@ def generate_startup_kit(problem):
         return res.choices[0].message.content
 
     except:
-        return f"""
-🚀 Landing Page:
-Solve: {problem}
+        return "Basic startup idea generated."
 
-📱 App Description:
-An app designed to solve this problem effectively.
 
-💼 Pitch:
-We are building a solution for {problem} with strong market demand.
-"""
+# ---------------- TECH STACK ----------------
+def generate_tech_stack(problem):
+    try:
+        prompt = f"""
+        Suggest tech stack for this startup:
+        {problem}
+
+        Include:
+        - Frontend
+        - Backend
+        - Database
+        - AI tools (if needed)
+        - Deployment
+        """
+
+        res = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        return res.choices[0].message.content
+
+    except:
+        return "Use React, FastAPI, PostgreSQL, Deploy on Vercel."
+
+
+# ---------------- BUSINESS PLAN ----------------
+def generate_business_plan(problem):
+    try:
+        prompt = f"""
+        Create a simple business plan for:
+        {problem}
+
+        Include:
+        - Problem
+        - Solution
+        - Market
+        - Revenue model
+        - Go-to-market strategy
+        """
+
+        res = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        return res.choices[0].message.content
+
+    except:
+        return "Basic business plan."
+
+
+# ---------------- LANDING PAGE CODE ----------------
+def generate_landing_page(problem):
+    try:
+        prompt = f"""
+        Create simple HTML landing page for:
+        {problem}
+
+        Include:
+        - headline
+        - features
+        - CTA button
+        Keep it clean.
+        """
+
+        res = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        return res.choices[0].message.content
+
+    except:
+        return "<h1>Startup Landing Page</h1>"
