@@ -7,17 +7,67 @@ st.set_page_config(page_title="AI Problem Discovery Dashboard")
 if "user" not in st.session_state:
     st.session_state.user = None
 
-# ---------------- IF USER LOGGED IN ----------------
-if st.session_state.user:
 
-    st.title("AI Problem Discovery Dashboard")
+# ---------------- DASHBOARD FUNCTION ----------------
+def show_dashboard():
+
+    st.title("🚀 AI Problem Discovery Dashboard")
+
     st.success(f"Logged in as {st.session_state.user}")
 
-    st.write("Your AI-discovered startup problems will appear here.")
+    st.markdown("---")
 
+    # 🔥 Problems Section
+    st.subheader("🔥 Trending Problems")
+
+    problems = [
+        "Managing multiple subscriptions is confusing",
+        "Small businesses lack affordable marketing tools",
+        "Students struggle to organize study material",
+        "Freelancers have inconsistent income tracking",
+    ]
+
+    for p in problems:
+        st.write(f"• {p}")
+
+    st.markdown("---")
+
+    # 💡 Startup Ideas Section
+    st.subheader("💡 Startup Ideas")
+
+    ideas = [
+        "AI subscription manager with auto-cancel suggestions",
+        "Low-cost AI marketing assistant for SMBs",
+        "Smart AI study planner with summaries",
+        "Freelancer income prediction dashboard",
+    ]
+
+    for i in ideas:
+        st.write(f"👉 {i}")
+
+    st.markdown("---")
+
+    # 📊 Simple Stats
+    st.subheader("📊 Insights")
+
+    col1, col2, col3 = st.columns(3)
+
+    col1.metric("Problems Found", "24")
+    col2.metric("Ideas Generated", "12")
+    col3.metric("Opportunities", "5 High")
+
+    st.markdown("---")
+
+    # Logout
     if st.button("Logout"):
         st.session_state.user = None
         st.rerun()
+
+
+# ---------------- IF USER LOGGED IN ----------------
+if st.session_state.user:
+    show_dashboard()
+
 
 # ---------------- AUTH PAGES ----------------
 else:
@@ -33,14 +83,14 @@ else:
 
         st.subheader("Login")
 
-        email = st.text_input("Email")
-        password = st.text_input("Password", type="password")
+        email = st.text_input("Email", key="login_email")
+        password = st.text_input("Password", type="password", key="login_pass")
 
         if st.button("Login"):
 
             result = sign_in(email, password)
 
-            if "access_token" in result:
+            if result and "access_token" in result:
                 st.session_state.user = email
                 st.rerun()
             else:
@@ -51,24 +101,24 @@ else:
 
         st.subheader("Create Account")
 
-        email = st.text_input("Email")
-        password = st.text_input("Password", type="password")
+        email = st.text_input("Email", key="reg_email")
+        password = st.text_input("Password", type="password", key="reg_pass")
 
         if st.button("Register"):
 
             result = sign_up(email, password)
 
-            if "error" in result:
+            if result and "error" in result:
                 st.error(result["error"])
             else:
-                st.success("Account created successfully. Check your email if confirmation is required.")
+                st.success("Account created successfully. Check your email if required.")
 
     # ---------- RESET PASSWORD ----------
     elif page == "Reset Password":
 
         st.subheader("Reset Password")
 
-        email = st.text_input("Email")
+        email = st.text_input("Email", key="reset_email")
 
         if st.button("Send Reset Email"):
             reset_password(email)
