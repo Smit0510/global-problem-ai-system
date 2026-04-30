@@ -39,9 +39,11 @@ def reset_password(email):
 
 # ---------------- DATABASE ----------------
 
-def insert_problem(problem, token, email):
+def insert_problem(problem, category, tags, token, user_email):
+    import requests
+
     res = requests.post(
-        f"{BASE_URL}/problems",
+        f"{SUPABASE_URL}/rest/v1/problems",
         headers={
             "apikey": SUPABASE_KEY,
             "Authorization": f"Bearer {token}",
@@ -49,15 +51,17 @@ def insert_problem(problem, token, email):
             "Prefer": "return=representation"
         },
         json={
-            "user_email": email,
-            "problem": problem
+            "problem": problem,
+            "category": category,
+            "tags": tags,
+            "user_email": user_email
         }
     )
 
     try:
         return res.json()
     except:
-        return {"error": res.text, "status_code": res.status_code}
+        return {"error": res.text}
 
 
 def get_problems(token):
