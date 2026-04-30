@@ -123,7 +123,7 @@ def show_dashboard():
         ["All"] + categories
     )
 
-    # ---- GET DATA ONCE ----
+    # ---- GET DATA ----
     data = get_problems(st.session_state.token)
 
     # ---- BEST STARTUP IDEAS ----
@@ -182,32 +182,23 @@ def show_dashboard():
 
         for row in filtered:
 
+            # 🔥 AUTO AI SCORING
+            if row.get("ai_score") is None:
+                score = score_problem(row["problem"])
+                if score:
+                    update_ai_score(row["id"], score, st.session_state.token)
+                    st.rerun()
+
             st.markdown(f"""
             <div style="padding:15px; border-radius:12px; background:#1e1e1e; margin-bottom:10px">
                 🚧 {row['problem']}<br><br>
                 <b>📂 Category:</b> {row.get('category','-')}<br>
                 <b>🏷️ Tags:</b> {row.get('tags','-')}<br><br>
-                <b>👍 Votes:</b> {row.get('votes',0)}
+                <b>👍 Votes:</b> {row.get('votes',0)}<br>
+                <b>🤖 AI Score:</b> {row.get('ai_score',0)}/10<br>
+                <b>⭐ Rank:</b> {calculate_rank(row)}
             </div>
             """, unsafe_allow_html=True)
-
-            # ⭐ RANK SCORE
-            st.markdown(f"⭐ Rank Score: **{calculate_rank(row)}**")
-
-            # ---- AI SCORE ----
-            ai_score = row.get("ai_score")
-
-            if ai_score:
-                st.markdown(f"🤖 AI Score: **{ai_score}/10**")
-            else:
-                if st.button("🧠 Score with AI", key=f"score_{row['id']}"):
-                    score = score_problem(row["problem"])
-
-                    if score:
-                        update_ai_score(row["id"], score, st.session_state.token)
-                        st.rerun()
-                    else:
-                        st.error("AI scoring failed")
 
             # ---- ACTIONS ----
             col1, col2 = st.columns(2)
