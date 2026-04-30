@@ -124,3 +124,18 @@ def get_trending_problems(token):
     )
 
     return res.json()
+
+def update_ai_score(problem_id, score, token):
+    import requests
+
+    res = requests.patch(
+        f"{SUPABASE_URL}/rest/v1/problems?id=eq.{problem_id}",
+        headers={
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        },
+        json={"ai_score": score}
+    )
+
+    return res.status_code
