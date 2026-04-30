@@ -111,3 +111,16 @@ def upvote_problem(problem_id, current_votes, token):
     print("RESPONSE:", res.text)
 
     return res.json()
+
+def get_trending_problems(token):
+    import requests
+
+    res = requests.get(
+        f"{SUPABASE_URL}/rest/v1/problems?select=*&order=votes.desc",
+        headers={
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {token}"
+        }
+    )
+
+    return res.json()
