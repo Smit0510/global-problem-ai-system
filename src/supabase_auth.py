@@ -1,9 +1,15 @@
-import requests
 import os
+import requests
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
+# 🔴 Debug check (temporary)
+print("SUPABASE_URL:", SUPABASE_URL)
+
+if not SUPABASE_URL or not SUPABASE_KEY:
+    raise ValueError("Supabase credentials not loaded. Check environment variables.")
+    
 BASE_URL = f"{SUPABASE_URL}/auth/v1"
 
 
