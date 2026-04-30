@@ -7,9 +7,11 @@ from supabase_auth import (
     get_problems,
     delete_problem,
     upvote_problem,
-    get_trending_problems   # ✅ added
+    get_trending_problems,
+    update_ai_score
 )
 from ai_generator import generate_problems
+from ai_scorer import score_problem
 
 # ✅ MUST BE FIRST
 st.set_page_config(page_title="AI Problem Dashboard")
@@ -80,7 +82,7 @@ def show_dashboard():
         else:
             st.warning("Enter a meaningful problem")
 
-    # ---- AI ----
+    # ---- AI SUGGESTIONS ----
     st.subheader("💡 AI Suggestions")
 
     if st.button("Generate Ideas"):
@@ -88,14 +90,13 @@ def show_dashboard():
         for idea in ideas:
             st.markdown(f"💡 {idea}")
 
-    # ---- 🔥 TRENDING ----
+    # ---- TRENDING ----
     st.subheader("🔥 Trending Problems")
 
     trending = get_trending_problems(st.session_state.token)
 
     if isinstance(trending, list) and len(trending) > 0:
-
-        for row in trending[:5]:  # top 5
+        for row in trending[:5]:
             st.markdown(f"""
             <div style="padding:10px; border-radius:10px; background:#262626; margin-bottom:10px">
                 🏆 <b>{row['problem']}</b><br>
@@ -103,7 +104,6 @@ def show_dashboard():
                 📂 {row.get('category','-')}
             </div>
             """, unsafe_allow_html=True)
-
     else:
         st.info("No trending data yet")
 
@@ -153,6 +153,22 @@ def show_dashboard():
             </div>
             """, unsafe_allow_html=True)
 
+            # ---- AI SCORE ----
+            ai_score = row.get("ai_score")
+
+            if ai_score:
+                st.markdown(f"🤖 AI Score: **{ai_score}/10**")
+            else:
+                if st.button("🧠 Score with AI", key=f"score_{row['id']}"):
+                    score = score_problem(row["problem"])
+
+                    if score:
+                        update_ai_score(row["id"], score, st.session_state.token)
+                        st.rerun()
+                    else:
+                        st.error("AI scoring failed")
+
+            # ---- ACTIONS ----
             col1, col2 = st.columns(2)
 
             with col1:
