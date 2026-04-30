@@ -14,15 +14,70 @@ from ai_generator import generate_problems
 from ai_scorer import score_problem
 
 # ✅ MUST BE FIRST
-st.set_page_config(page_title="AI Problem Dashboard")
+st.set_page_config(page_title="AI Problem Dashboard", layout="wide")
+
+# 🎨 GLOBAL CSS
+st.markdown("""
+<style>
+
+/* Background */
+.stApp {
+    background-color: #0e1117;
+}
+
+/* Cards */
+.card {
+    padding: 16px;
+    border-radius: 14px;
+    background: #1c1f26;
+    margin-bottom: 12px;
+    border: 1px solid #2a2d34;
+}
+
+/* Highlight */
+.card-highlight {
+    padding: 16px;
+    border-radius: 14px;
+    background: linear-gradient(145deg, #1a2a1f, #1f3a28);
+    margin-bottom: 12px;
+    border: 1px solid #2e5f3e;
+}
+
+/* Text */
+.title {
+    font-size: 17px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.meta {
+    font-size: 13px;
+    color: #aaa;
+}
+
+/* Search */
+input {
+    border-radius: 10px !important;
+}
+
+/* Tag */
+.tag {
+    display: inline-block;
+    background: #2a2a2a;
+    padding: 4px 8px;
+    border-radius: 8px;
+    margin-right: 5px;
+    font-size: 12px;
+}
+
+</style>
+""", unsafe_allow_html=True)
 
 # ---------------- SESSION ----------------
 if "user" not in st.session_state:
     st.session_state.user = None
-
 if "token" not in st.session_state:
     st.session_state.token = None
-
 if "problem_input" not in st.session_state:
     st.session_state.problem_input = ""
 
@@ -33,194 +88,131 @@ def show_dashboard():
 
     st.success(f"Logged in as {st.session_state.user}")
 
-    # 🧠 GLOBAL RANK FUNCTION
+    # 🧠 Rank function
     def calculate_rank(row):
-        ai = row.get("ai_score") or 0
-        votes = row.get("votes") or 0
-        return (ai * 2) + votes
+        return (row.get("ai_score", 0) or 0) * 2 + (row.get("votes", 0) or 0)
 
-    # ---- ADD PROBLEM ----
+    # ---------------- ADD PROBLEM ----------------
     st.subheader("➕ Add Problem")
 
-    problem = st.text_input(
-        "Enter a real-world problem",
-        value=st.session_state.problem_input
-    )
+    problem = st.text_input("Enter a real-world problem", value=st.session_state.problem_input)
 
     categories = ["Education", "Finance", "Health", "Productivity", "Startup", "Other"]
-
-    default_category = "Other"
-    if problem:
-        p = problem.lower()
-        if "student" in p or "study" in p:
-            default_category = "Education"
-        elif "money" in p or "bill" in p:
-            default_category = "Finance"
-        elif "health" in p or "gym" in p:
-            default_category = "Health"
-        elif "focus" in p:
-            default_category = "Productivity"
-        elif "startup" in p:
-            default_category = "Startup"
-
-    category = st.selectbox(
-        "Select Category",
-        categories,
-        index=categories.index(default_category)
-    )
-
+    category = st.selectbox("Category", categories)
     tags = st.text_input("Tags (comma separated)")
 
     if st.button("Save Problem"):
         if problem and len(problem.strip()) > 5:
-
-            insert_problem(
-                problem.strip(),
-                category,
-                tags,
-                st.session_state.token,
-                st.session_state.user
-            )
-
-            st.success("Problem saved!")
+            insert_problem(problem, category, tags, st.session_state.token, st.session_state.user)
             st.session_state.problem_input = ""
+            st.success("Saved!")
             st.rerun()
-        else:
-            st.warning("Enter a meaningful problem")
 
-    # ---- AI SUGGESTIONS ----
+    # ---------------- AI ----------------
     st.subheader("💡 AI Suggestions")
 
     if st.button("Generate Ideas"):
         ideas = generate_problems(problem if problem else "startup problems")
-        for idea in ideas:
-            st.markdown(f"💡 {idea}")
+        for i in ideas:
+            st.markdown(f"💡 {i}")
 
-    # ---- TRENDING ----
-    st.subheader("🔥 Trending Problems")
+    # ---------------- SEARCH ----------------
+    search = st.text_input("🔍 Search problems")
 
-    trending = get_trending_problems(st.session_state.token)
-
-    if isinstance(trending, list) and len(trending) > 0:
-        for row in trending[:5]:
-            st.markdown(f"""
-            <div style="padding:10px; border-radius:10px; background:#262626; margin-bottom:10px">
-                🏆 <b>{row['problem']}</b><br>
-                👍 Votes: {row.get('votes',0)}<br>
-                📂 {row.get('category','-')}
-            </div>
-            """, unsafe_allow_html=True)
-    else:
-        st.info("No trending data yet")
-
-    # ---- SEARCH ----
-    st.subheader("🔍 Search & Filter")
-
-    search_query = st.text_input("Search problems")
-
-    filter_category = st.selectbox(
-        "Filter by Category",
-        ["All"] + categories
-    )
-
-    # ---- GET DATA ----
+    # ---------------- DATA ----------------
     data = get_problems(st.session_state.token)
 
-    # ---- BEST STARTUP IDEAS ----
-    st.subheader("🏆 Best Startup Ideas")
+    # ---------------- TABS ----------------
+    tab1, tab2, tab3 = st.tabs(["📋 All", "🔥 Trending", "🏆 Best"])
 
-    if isinstance(data, list) and len(data) > 0:
+    # ---------------- TAB 1: ALL ----------------
+    with tab1:
 
-        ranked = sorted(
-            data,
-            key=lambda x: calculate_rank(x),
-            reverse=True
-        )
+        if data:
+            filtered = []
 
-        top = ranked[:5]
+            for row in data:
+                if search and search.lower() not in row["problem"].lower():
+                    continue
+                filtered.append(row)
 
-        for row in top:
-            st.markdown(f"""
-            <div style="padding:12px; border-radius:12px; background:#2a2a2a; margin-bottom:10px">
-                🚀 <b>{row['problem']}</b><br><br>
-                🤖 Score: {row.get('ai_score',0)} | 👍 Votes: {row.get('votes',0)}
-            </div>
-            """, unsafe_allow_html=True)
+            filtered = sorted(filtered, key=calculate_rank, reverse=True)
 
-    else:
-        st.info("No data yet")
+            for row in filtered:
 
-    # ---- SHOW PROBLEMS ----
-    st.subheader("📋 Your Problems")
+                # AUTO AI
+                if row.get("ai_score") is None:
+                    score = score_problem(row["problem"])
+                    if score:
+                        update_ai_score(row["id"], score, st.session_state.token)
+                        st.rerun()
 
-    if isinstance(data, list) and len(data) > 0:
+                st.markdown(f"""
+                <div class="card">
+                    <div class="title">🚧 {row['problem']}</div><br>
 
-        filtered = []
+                    <div class="meta">
+                        📂 {row.get('category','-')}<br>
+                        🏷️ {row.get('tags','-')}<br><br>
 
-        for row in data:
-            text = row.get("problem", "").lower()
-            cat = (row.get("category") or "").lower()
+                        👍 {row.get('votes',0)} |
+                        🤖 {row.get('ai_score',0)}/10 |
+                        ⭐ {calculate_rank(row)}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
 
-            if search_query and search_query.lower() not in text:
-                continue
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button("👍", key=f"v{row['id']}"):
+                        upvote_problem(row["id"], row.get("votes", 0), st.session_state.token)
+                        st.rerun()
+                with col2:
+                    if st.button("❌", key=f"d{row['id']}"):
+                        delete_problem(row["id"], st.session_state.token)
+                        st.rerun()
 
-            if filter_category != "All" and cat != filter_category.lower():
-                continue
+        else:
+            st.info("No problems yet")
 
-            filtered.append(row)
+    # ---------------- TAB 2: TRENDING ----------------
+    with tab2:
 
-        if len(filtered) == 0:
-            st.info("No matching problems found")
-            return
+        trending = get_trending_problems(st.session_state.token)
 
-        # 🔥 SORT BY RANK
-        filtered = sorted(
-            filtered,
-            key=lambda x: calculate_rank(x),
-            reverse=True
-        )
+        if trending:
+            for row in trending[:5]:
+                st.markdown(f"""
+                <div class="card">
+                    <div class="title">🔥 {row['problem']}</div>
+                    <div class="meta">👍 {row.get('votes',0)}</div>
+                </div>
+                """, unsafe_allow_html=True)
 
-        for row in filtered:
+        else:
+            st.info("No trending data")
 
-            # 🔥 AUTO AI SCORING
-            if row.get("ai_score") is None:
-                score = score_problem(row["problem"])
-                if score:
-                    update_ai_score(row["id"], score, st.session_state.token)
-                    st.rerun()
+    # ---------------- TAB 3: BEST ----------------
+    with tab3:
 
-            st.markdown(f"""
-            <div style="padding:15px; border-radius:12px; background:#1e1e1e; margin-bottom:10px">
-                🚧 {row['problem']}<br><br>
-                <b>📂 Category:</b> {row.get('category','-')}<br>
-                <b>🏷️ Tags:</b> {row.get('tags','-')}<br><br>
-                <b>👍 Votes:</b> {row.get('votes',0)}<br>
-                <b>🤖 AI Score:</b> {row.get('ai_score',0)}/10<br>
-                <b>⭐ Rank:</b> {calculate_rank(row)}
-            </div>
-            """, unsafe_allow_html=True)
+        if data:
+            ranked = sorted(data, key=calculate_rank, reverse=True)
 
-            # ---- ACTIONS ----
-            col1, col2 = st.columns(2)
+            for row in ranked[:5]:
+                st.markdown(f"""
+                <div class="card-highlight">
+                    <div class="title">🚀 {row['problem']}</div>
+                    <div class="meta">
+                        🤖 {row.get('ai_score',0)} |
+                        👍 {row.get('votes',0)}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
 
-            with col1:
-                if st.button("👍 Upvote", key=f"vote_{row['id']}"):
-                    upvote_problem(
-                        row["id"],
-                        row.get("votes", 0),
-                        st.session_state.token
-                    )
-                    st.rerun()
+        else:
+            st.info("No data yet")
 
-            with col2:
-                if st.button("❌ Delete", key=f"del_{row['id']}"):
-                    delete_problem(row["id"], st.session_state.token)
-                    st.rerun()
-
-    else:
-        st.info("No problems yet")
-
-    # ---- LOGOUT ----
+    # ---------------- LOGOUT ----------------
     if st.button("Logout"):
         st.session_state.user = None
         st.session_state.token = None
@@ -230,53 +222,31 @@ def show_dashboard():
 # ---------------- AUTH ----------------
 if st.session_state.user:
     show_dashboard()
-
 else:
-    page = st.radio(
-        "Select Page",
-        ["Login", "Register", "Reset Password"],
-        horizontal=True
-    )
+    page = st.radio("Select Page", ["Login", "Register", "Reset Password"], horizontal=True)
 
     if page == "Login":
-        st.subheader("Login")
-
         email = st.text_input("Email")
         password = st.text_input("Password", type="password")
-
         if st.button("Login"):
-            result = sign_in(email, password)
-
-            if "access_token" in result:
+            res = sign_in(email, password)
+            if "access_token" in res:
                 st.session_state.user = email
-                st.session_state.token = result["access_token"]
-                st.success("Logged in!")
+                st.session_state.token = res["access_token"]
                 st.rerun()
-            else:
-                st.error("Invalid login")
 
     elif page == "Register":
-        st.subheader("Create Account")
-
         email = st.text_input("Email")
         password = st.text_input("Password", type="password")
-
         if st.button("Register"):
-            result = sign_up(email, password)
-
-            if "access_token" in result:
+            res = sign_up(email, password)
+            if "access_token" in res:
                 st.session_state.user = email
-                st.session_state.token = result["access_token"]
-                st.success("Account created!")
+                st.session_state.token = res["access_token"]
                 st.rerun()
-            else:
-                st.error("Registration failed")
 
     elif page == "Reset Password":
-        st.subheader("Reset Password")
-
         email = st.text_input("Email")
-
         if st.button("Send Reset Email"):
             reset_password(email)
             st.success("Email sent")
