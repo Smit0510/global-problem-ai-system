@@ -1,43 +1,4 @@
 import streamlit as st
-
-# ✅ MUST BE FIRST
-st.set_page_config(page_title="AI Problem Dashboard")
-
-# 🎨 CUSTOM UI STYLE
-st.markdown("""
-<style>
-body {
-    background-color: #0e1117;
-}
-
-.block-container {
-    padding-top: 2rem;
-}
-
-.card {
-    background-color: #1c1f26;
-    padding: 15px;
-    border-radius: 12px;
-    margin-bottom: 10px;
-    box-shadow: 0px 2px 10px rgba(0,0,0,0.3);
-}
-
-.stButton>button {
-    border-radius: 10px;
-    padding: 8px 16px;
-    font-weight: 500;
-}
-
-h1, h2, h3 {
-    color: #ffffff;
-}
-
-p, span, div {
-    color: #d1d5db;
-}
-</style>
-""", unsafe_allow_html=True)
-
 from supabase_auth import (
     sign_up,
     sign_in,
@@ -46,9 +7,10 @@ from supabase_auth import (
     get_problems,
     delete_problem,
 )
-
 from ai_generator import generate_problems
 
+# ✅ MUST BE FIRST STREAMLIT COMMAND
+st.set_page_config(page_title="AI Problem Dashboard")
 
 # ---------------- SESSION ----------------
 if "user" not in st.session_state:
@@ -60,21 +22,14 @@ if "token" not in st.session_state:
 if "problem_input" not in st.session_state:
     st.session_state.problem_input = ""
 
-
 # ---------------- DASHBOARD ----------------
 def show_dashboard():
-
-    # HEADER
-    st.markdown("""
-    <h1 style='text-align: center;'>🚀 AI Problem Discovery</h1>
-    <p style='text-align: center; color: gray;'>Find real-world problems & build startups</p>
-    """, unsafe_allow_html=True)
+    st.title("🚀 AI Problem Discovery")
+    st.caption("Find real-world problems & build startups")
 
     st.success(f"Logged in as {st.session_state.user}")
 
-    st.markdown("###")
-
-    # -------- ADD PROBLEM --------
+    # ---- ADD PROBLEM ----
     st.subheader("➕ Add Problem")
 
     problem = st.text_input(
@@ -82,56 +37,48 @@ def show_dashboard():
         value=st.session_state.problem_input
     )
 
-    col1, col2 = st.columns([2, 1])
+    category = st.selectbox(
+        "Select Category",
+        ["Education", "Finance", "Health", "Productivity", "Startup", "Other"]
+    )
 
-    # SAVE
-    with col1:
-        if st.button("💾 Save Problem"):
+    tags = st.text_input(
+        "Tags (comma separated)",
+        placeholder="e.g. students, money, fitness"
+    )
 
-            if problem and len(problem.strip()) > 5:
+    if st.button("Save Problem"):
 
-                insert_problem(
-                    problem.strip(),
-                    st.session_state.token,
-                    st.session_state.user
-                )
+        if problem and len(problem.strip()) > 5:
 
+            result = insert_problem(
+                problem.strip(),
+                category,
+                tags,
+                st.session_state.token,
+                st.session_state.user
+            )
+
+            if isinstance(result, dict) and "error" in result:
+                st.error(f"Error: {result}")
+            else:
                 st.success("Problem saved!")
                 st.session_state.problem_input = ""
+                st.rerun()
 
-            else:
-                st.warning("Enter meaningful problem")
+        else:
+            st.warning("Enter a meaningful problem (min 5 characters)")
 
-    # AI GENERATE
-    with col2:
-        if st.button("🤖 Suggest Problems"):
-            st.session_state.ai_problems = generate_problems("startup")
+    # ---- AI SUGGESTIONS ----
+    st.subheader("💡 AI Suggestions")
 
-    st.markdown("###")
+    if st.button("Generate Ideas"):
+        suggestions = generate_problems(problem if problem else "startup problems")
 
-    # -------- AI SUGGESTIONS --------
-    if "ai_problems" in st.session_state:
+        for idea in suggestions:
+            st.markdown(f"💡 {idea}")
 
-        st.subheader("💡 AI Suggestions")
-
-        for i, p in enumerate(st.session_state.ai_problems):
-
-            col1, col2 = st.columns([4, 1])
-
-            with col1:
-                st.markdown(f"""
-                <div class="card">
-                    💡 {p}
-                </div>
-                """, unsafe_allow_html=True)
-
-            with col2:
-                if st.button("Use", key=f"use_{i}"):
-                    st.session_state.problem_input = p
-
-    st.markdown("---")
-
-    # -------- SHOW PROBLEMS --------
+    # ---- SHOW PROBLEMS ----
     st.subheader("📋 Your Problems")
 
     data = get_problems(st.session_state.token)
@@ -139,29 +86,30 @@ def show_dashboard():
     if isinstance(data, list) and len(data) > 0:
 
         for row in data:
-            col1, col2 = st.columns([4, 1])
+            col1, col2 = st.columns([5, 1])
 
             with col1:
                 st.markdown(f"""
-                <div class="card">
-                    🚧 {row['problem']}
+                <div style="padding:10px; border-radius:10px; background:#1e1e1e; margin-bottom:10px">
+                    🚧 {row['problem']}<br><br>
+                    <b>📂 Category:</b> {row.get('category','-')}<br>
+                    <b>🏷️ Tags:</b> {row.get('tags','-')}
                 </div>
                 """, unsafe_allow_html=True)
 
             with col2:
                 if st.button("❌", key=row["id"]):
                     delete_problem(row["id"], st.session_state.token)
-                    st.success("Deleted!")
+                    st.rerun()
 
     else:
         st.info("No problems yet")
 
-    st.markdown("---")
-
-    # LOGOUT
+    # ---- LOGOUT ----
     if st.button("Logout"):
         st.session_state.user = None
         st.session_state.token = None
+        st.rerun()
 
 
 # ---------------- AUTH ----------------
@@ -175,7 +123,7 @@ else:
         horizontal=True
     )
 
-    # LOGIN
+    # ---------- LOGIN ----------
     if page == "Login":
 
         st.subheader("Login")
@@ -191,10 +139,11 @@ else:
                 st.session_state.user = email
                 st.session_state.token = result["access_token"]
                 st.success("Logged in successfully!")
+                st.rerun()
             else:
                 st.error(result.get("error_description", "Invalid email or password"))
 
-    # REGISTER
+    # ---------- REGISTER ----------
     elif page == "Register":
 
         st.subheader("Create Account")
@@ -210,10 +159,11 @@ else:
                 st.session_state.user = email
                 st.session_state.token = result["access_token"]
                 st.success("Account created & logged in!")
+                st.rerun()
             else:
                 st.error(result.get("error_description", "Registration failed"))
 
-    # RESET PASSWORD
+    # ---------- RESET PASSWORD ----------
     elif page == "Reset Password":
 
         st.subheader("Reset Password")
