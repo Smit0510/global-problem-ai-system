@@ -1,5 +1,6 @@
 import os
 import json
+import re
 from openai import OpenAI
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -29,6 +30,22 @@ def generate_problems(topic="startup problems"):
             "People find it hard to save money",
             "Gym beginners don’t know workouts"
         ]
+
+
+# ---------------- CLEAN JSON ----------------
+def clean_json(text):
+    try:
+        # remove markdown ```json ```
+        text = re.sub(r"```json|```", "", text).strip()
+
+        # extract JSON part
+        match = re.search(r"\{.*\}", text, re.DOTALL)
+        if match:
+            return match.group()
+
+        return text
+    except:
+        return text
 
 
 # ---------------- FULL STARTUP PLAN ----------------
@@ -73,7 +90,10 @@ def generate_full_startup_plan(problem):
             temperature=0.7
         )
 
-        return res.choices[0].message.content
+        raw = res.choices[0].message.content
+
+        # clean JSON before returning
+        return clean_json(raw)
 
     except Exception as e:
         print("AI ERROR:", e)
