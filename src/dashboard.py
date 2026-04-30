@@ -46,33 +46,34 @@ else:
         password = st.text_input("Password", type="password", key="login_pass")
 
         if st.button("Login"):
-            result = sign_in(email, password)
 
-            st.write(result)  # DEBUG
+    result = sign_in(email, password)
 
-            if result and "access_token" in result:
-                st.session_state.user = email
-                st.rerun()
-            else:
-                st.error(result.get("error", "Invalid email or password"))
-
+    if "access_token" in result:
+        st.session_state.user = email
+        st.success("Logged in successfully!")
+        st.rerun()
+    else:
+        st.error(result.get("error_description", "Invalid email or password"))
     # ---------- REGISTER ----------
     elif page == "Register":
 
-        st.subheader("Create Account")
+    st.subheader("Create Account")
 
-        email = st.text_input("Email", key="reg_email")
-        password = st.text_input("Password", type="password", key="reg_pass")
+    email = st.text_input("Email", key="reg_email")
+    password = st.text_input("Password", type="password", key="reg_pass")
 
-        if st.button("Register"):
-            result = sign_up(email, password)
+    if st.button("Register"):
 
-            st.write(result)  # DEBUG
+        result = sign_up(email, password)
 
-            if result and "user" in result:
-                st.success("Account created successfully")
-            else:
-                st.error(result.get("error", "Registration failed"))
+        if "access_token" in result:
+            # ✅ AUTO LOGIN AFTER REGISTER
+            st.session_state.user = email
+            st.success("Account created & logged in!")
+            st.rerun()
+        else:
+            st.error(result.get("error_description", "Registration failed"))
 
     # ---------- RESET PASSWORD ----------
     elif page == "Reset Password":
