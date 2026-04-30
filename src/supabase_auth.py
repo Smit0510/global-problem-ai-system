@@ -44,7 +44,7 @@ def insert_problem(problem, token, email):
         f"{BASE_URL}/problems",
         headers={
             "apikey": SUPABASE_KEY,
-            "Authorization": f"Bearer {token}",  # ✅ IMPORTANT (RLS)
+            "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
             "Prefer": "return=representation"
         },
@@ -57,10 +57,7 @@ def insert_problem(problem, token, email):
     try:
         return res.json()
     except:
-        return {
-            "error": res.text,
-            "status_code": res.status_code
-        }
+        return {"error": res.text, "status_code": res.status_code}
 
 
 def get_problems(token):
@@ -68,7 +65,7 @@ def get_problems(token):
         f"{BASE_URL}/problems",
         headers={
             "apikey": SUPABASE_KEY,
-            "Authorization": f"Bearer {token}"  # ✅ IMPORTANT
+            "Authorization": f"Bearer {token}"
         }
     )
 
@@ -76,3 +73,16 @@ def get_problems(token):
         return res.json()
     except:
         return []
+
+
+# 🔥 NEW: DELETE FUNCTION
+def delete_problem(problem_id, token):
+    res = requests.delete(
+        f"{BASE_URL}/problems?id=eq.{problem_id}",
+        headers={
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {token}"
+        }
+    )
+
+    return res.status_code
