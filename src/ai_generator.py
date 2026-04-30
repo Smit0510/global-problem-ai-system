@@ -2,8 +2,7 @@ import os
 from openai import OpenAI
 
 # Initialize client
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
+client = OpenAI()
 
 def generate_problems(topic="startup problems"):
     try:
