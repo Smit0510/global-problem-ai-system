@@ -1,4 +1,5 @@
 import os
+import json
 from openai import OpenAI
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -30,105 +31,50 @@ def generate_problems(topic="startup problems"):
         ]
 
 
-# ---------------- STARTUP KIT ----------------
-def generate_startup_kit(problem):
+# ---------------- FULL STARTUP PLAN ----------------
+def generate_full_startup_plan(problem):
     try:
         prompt = f"""
-        Problem: {problem}
+        You are an expert startup advisor, product manager, and CTO.
 
-        Create:
-        - Startup name
-        - Solution
-        - Users
-        - Features
-        - Monetization
-        - Steps to build
-        Keep simple.
-        """
-
-        res = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}]
-        )
-
-        return res.choices[0].message.content
-
-    except:
-        return "Basic startup idea generated."
-
-
-# ---------------- TECH STACK ----------------
-def generate_tech_stack(problem):
-    try:
-        prompt = f"""
-        Suggest tech stack for this startup:
+        Given this problem:
         {problem}
 
-        Include:
-        - Frontend
-        - Backend
-        - Database
-        - AI tools (if needed)
-        - Deployment
+        Generate a COMPLETE startup plan in STRICT JSON format:
+
+        {{
+          "startup_name": "",
+          "tagline": "",
+          "problem_analysis": "",
+          "solution": "",
+          "target_users": "",
+          "features": [],
+          "monetization": "",
+          "build_steps": [],
+          "tech_stack": {{
+            "frontend": "",
+            "backend": "",
+            "database": "",
+            "ai_tools": "",
+            "deployment": ""
+          }},
+          "go_to_market": ""
+        }}
+
+        Rules:
+        - Output ONLY JSON
+        - No explanation
+        - No extra text
         """
 
         res = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}]
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7
         )
 
         return res.choices[0].message.content
 
-    except:
-        return "Use React, FastAPI, PostgreSQL, Deploy on Vercel."
-
-
-# ---------------- BUSINESS PLAN ----------------
-def generate_business_plan(problem):
-    try:
-        prompt = f"""
-        Create a simple business plan for:
-        {problem}
-
-        Include:
-        - Problem
-        - Solution
-        - Market
-        - Revenue model
-        - Go-to-market strategy
-        """
-
-        res = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}]
-        )
-
-        return res.choices[0].message.content
-
-    except:
-        return "Basic business plan."
-
-
-# ---------------- LANDING PAGE CODE ----------------
-def generate_landing_page(problem):
-    try:
-        prompt = f"""
-        Create simple HTML landing page for:
-        {problem}
-
-        Include:
-        - headline
-        - features
-        - CTA button
-        Keep it clean.
-        """
-
-        res = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}]
-        )
-
-        return res.choices[0].message.content
-
-    except:
-        return "<h1>Startup Landing Page</h1>"
+    except Exception as e:
+        print("AI ERROR:", e)
+        return None
