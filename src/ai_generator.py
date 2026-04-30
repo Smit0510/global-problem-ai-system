@@ -1,5 +1,4 @@
 import os
-import json
 import re
 from openai import OpenAI
 
@@ -24,25 +23,21 @@ def generate_problems(topic="startup problems"):
 
     except:
         return [
-            "People forget to pay bills on time",
-            "Students struggle to stay focused",
-            "Freelancers struggle to find clients",
+            "Students struggle to stay focused while studying",
             "People find it hard to save money",
-            "Gym beginners don’t know workouts"
+            "Freelancers struggle to find clients",
+            "People forget daily tasks",
+            "Beginners don't know how to start fitness"
         ]
 
 
 # ---------------- CLEAN JSON ----------------
 def clean_json(text):
     try:
-        # remove markdown ```json ```
         text = re.sub(r"```json|```", "", text).strip()
-
-        # extract JSON part
         match = re.search(r"\{.*\}", text, re.DOTALL)
         if match:
             return match.group()
-
         return text
     except:
         return text
@@ -85,26 +80,38 @@ def generate_full_startup_plan(problem):
             temperature=0.6
         )
 
-        return res.choices[0].message.content
+        raw = res.choices[0].message.content
+        return clean_json(raw)
 
-    except Exception as e:
+    except Exception:
+        # 🔥 DYNAMIC FALLBACK (NO API)
+        problem_lower = problem.lower()
 
-        # 🔥 FREE FALLBACK (NO API)
+        name = "StartupX"
+        if "study" in problem_lower:
+            name = "FocusFlow"
+        elif "money" in problem_lower:
+            name = "SaveSmart"
+        elif "fitness" in problem_lower:
+            name = "FitTrack"
+        elif "task" in problem_lower:
+            name = "TaskMate"
+
         return f"""{{
-          "startup_name": "FocusFlow",
-          "tagline": "Stay focused, achieve more",
-          "problem_analysis": "People struggle to stay focused due to distractions and lack of structured workflow.",
-          "solution": "An app that blocks distractions and provides structured work sessions.",
-          "target_users": "Students, remote workers, freelancers",
-          "features": ["Focus timer", "Distraction blocker", "Daily goals", "Progress tracking"],
-          "monetization": "Freemium model with premium productivity tools",
-          "build_steps": ["Validate idea", "Build MVP", "Launch landing page", "Get first users"],
-          "tech_stack": {{
-            "frontend": "React",
-            "backend": "FastAPI",
-            "database": "PostgreSQL",
-            "ai_tools": "None",
-            "deployment": "Vercel + Render"
-          }},
-          "go_to_market": "Launch on social media and student communities"
-        }}"""
+  "startup_name": "{name}",
+  "tagline": "Solving: {problem}",
+  "problem_analysis": "{problem} is a common issue affecting many people.",
+  "solution": "A digital platform that helps solve this problem efficiently.",
+  "target_users": "People facing this problem",
+  "features": ["Core feature", "Tracking", "Analytics", "User dashboard"],
+  "monetization": "Freemium subscription model",
+  "build_steps": ["Validate idea", "Build MVP", "Launch", "Get users"],
+  "tech_stack": {{
+    "frontend": "React",
+    "backend": "FastAPI",
+    "database": "PostgreSQL",
+    "ai_tools": "None",
+    "deployment": "Render"
+  }},
+  "go_to_market": "Social media + online communities"
+}}"""
