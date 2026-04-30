@@ -52,12 +52,12 @@ def clean_json(text):
 def generate_full_startup_plan(problem):
     try:
         prompt = f"""
-        You are an expert startup advisor, product manager, and CTO.
+        You are an expert startup advisor.
 
-        Given this problem:
+        Problem:
         {problem}
 
-        Generate a COMPLETE startup plan in STRICT JSON format:
+        Return ONLY valid JSON:
 
         {{
           "startup_name": "",
@@ -77,22 +77,15 @@ def generate_full_startup_plan(problem):
           }},
           "go_to_market": ""
         }}
-
-        Rules:
-        - Output ONLY JSON
-        - No explanation
-        - No extra text
         """
 
         res = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.7
+            temperature=0.6
         )
 
-        raw = res.choices[0].message.content
+        return res.choices[0].message.content
 
-        # clean JSON before returning
-        return clean_json(raw)
-        except Exception as e:
-            return f"ERROR: {str(e)}"
+    except Exception as e:
+        return f"ERROR: {str(e)}"
