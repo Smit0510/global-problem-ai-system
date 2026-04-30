@@ -94,7 +94,5 @@ def generate_full_startup_plan(problem):
 
         # clean JSON before returning
         return clean_json(raw)
-
-    except Exception as e:
-        print("AI ERROR:", e)
-        return None
+        except Exception as e:
+            return f"ERROR: {str(e)}"
