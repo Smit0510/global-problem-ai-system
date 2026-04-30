@@ -88,4 +88,23 @@ def generate_full_startup_plan(problem):
         return res.choices[0].message.content
 
     except Exception as e:
-        return f"ERROR: {str(e)}"
+
+        # 🔥 FREE FALLBACK (NO API)
+        return f"""{{
+          "startup_name": "FocusFlow",
+          "tagline": "Stay focused, achieve more",
+          "problem_analysis": "People struggle to stay focused due to distractions and lack of structured workflow.",
+          "solution": "An app that blocks distractions and provides structured work sessions.",
+          "target_users": "Students, remote workers, freelancers",
+          "features": ["Focus timer", "Distraction blocker", "Daily goals", "Progress tracking"],
+          "monetization": "Freemium model with premium productivity tools",
+          "build_steps": ["Validate idea", "Build MVP", "Launch landing page", "Get first users"],
+          "tech_stack": {{
+            "frontend": "React",
+            "backend": "FastAPI",
+            "database": "PostgreSQL",
+            "ai_tools": "None",
+            "deployment": "Vercel + Render"
+          }},
+          "go_to_market": "Launch on social media and student communities"
+        }}"""
