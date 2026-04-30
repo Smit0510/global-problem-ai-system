@@ -117,6 +117,37 @@ def show_dashboard():
         ["All"] + categories
     )
 
+    # ---- BEST STARTUP IDEAS ----
+    st.subheader("🏆 Best Startup Ideas")
+
+    data = get_problems(st.session_state.token)
+
+    if isinstance(data, list) and len(data) > 0:
+
+        def calculate_rank(row):
+            ai = row.get("ai_score") or 0
+            votes = row.get("votes") or 0
+            return (ai * 2) + votes
+
+        ranked = sorted(
+            data,
+            key=lambda x: calculate_rank(x),
+            reverse=True
+        )
+
+        top = ranked[:5]
+
+        for row in top:
+            st.markdown(f"""
+            <div style="padding:12px; border-radius:12px; background:#2a2a2a; margin-bottom:10px">
+                🚀 <b>{row['problem']}</b><br><br>
+                🤖 Score: {row.get('ai_score',0)} | 👍 Votes: {row.get('votes',0)}
+            </div>
+            """, unsafe_allow_html=True)
+
+    else:
+        st.info("No data yet")
+
     # ---- SHOW PROBLEMS ----
     st.subheader("📋 Your Problems")
 
