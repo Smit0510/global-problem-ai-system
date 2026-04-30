@@ -15,6 +15,9 @@ st.set_page_config(page_title="AI Startup Builder", layout="wide")
 if "generated_plans" not in st.session_state:
     st.session_state.generated_plans = {}
 
+if "build_count" not in st.session_state:
+    st.session_state.build_count = 0
+
 if "user" not in st.session_state:
     st.session_state.user = None
 
@@ -32,7 +35,6 @@ def show_dashboard():
 
     st.success(f"Logged in as {st.session_state.user}")
 
-    # ---- ADD PROBLEM ----
     st.subheader("➕ Add Problem")
 
     problem = st.text_input(
@@ -49,7 +51,6 @@ def show_dashboard():
         else:
             st.error("Enter valid problem")
 
-    # ---- AI SUGGESTIONS ----
     st.subheader("💡 AI Suggestions")
 
     if st.button("Generate Ideas"):
@@ -57,70 +58,24 @@ def show_dashboard():
         for idea in ideas:
             st.markdown(f"💡 {idea}")
 
-    # ---- TRENDING ----
     st.subheader("🔥 Trending")
 
     trending = get_trending_problems(st.session_state.token)
 
     if isinstance(trending, list):
         for row in trending[:5]:
-            st.markdown(f"""
-            🏆 {row['problem']}  
-            👍 {row.get('votes',0)}  
-            """)
+            st.markdown(f"🏆 {row['problem']}  \n👍 {row.get('votes',0)}")
 
-    # ---- BEST IDEAS ----
-    st.subheader("🏆 Best Startup Ideas")
+    st.subheader("📋 Your Problems")
 
     data = get_problems(st.session_state.token)
 
     if isinstance(data, list):
 
-        def rank(row):
-            return (row.get("ai_score", 0) * 2) + row.get("votes", 0)
-
-        best = sorted(data, key=rank, reverse=True)[:5]
-
-        for row in best:
-            st.markdown(f"""
-            🚀 {row['problem']}  
-            🤖 {row.get('ai_score',0)} | 👍 {row.get('votes',0)}
-            """)
-
-    # ---- SEARCH ----
-    st.subheader("🔍 Search & Filter")
-
-    search = st.text_input("Search")
-
-    # ---- LIST ----
-    st.subheader("📋 Your Problems")
-
-    if isinstance(data, list):
-
         for row in data:
 
-            if search and search.lower() not in row["problem"].lower():
-                continue
+            st.markdown(f"---\n🚧 {row['problem']}  \n👍 {row.get('votes',0)}")
 
-            st.markdown(f"""
-            ---
-            🚧 {row['problem']}  
-            👍 {row.get('votes',0)}
-            """)
-
-            # ---- SCORE ----
-            if row.get("ai_score"):
-                st.write(f"🤖 Score: {row['ai_score']}")
-            else:
-                if st.button("Score", key=f"s{row['id']}"):
-                    score = score_problem(row["problem"])
-                    if score:
-                        update_ai_score(row["id"], score, st.session_state.token)
-                        st.rerun()
-                    else:
-                        st.error("AI failed")
-
-            # ---- ACTIONS ----
             col1, col2, col3 = st.columns(3)
 
             with col1:
@@ -136,64 +91,61 @@ def show_dashboard():
             with col3:
                 if st.button("🚀 Build", key=f"b{row['id']}"):
 
+                    # 🔒 FREE LIMIT
+                    if st.session_state.build_count >= 3:
+                        st.warning("Free limit reached. Upgrade coming soon 🚀")
+                        return
+
                     st.info("Generating...")
 
                     import json
 
-                    # ✅ Store per problem
                     if row["id"] not in st.session_state.generated_plans:
                         st.session_state.generated_plans[row["id"]] = generate_full_startup_plan(row["problem"])
+                        st.session_state.build_count += 1
 
                     plan_raw = st.session_state.generated_plans[row["id"]]
 
-                    # ---- ERROR HANDLING ----
-                    if not plan_raw or "ERROR:" in str(plan_raw):
-                        st.error("AI failed")
+                    try:
+                        plan = json.loads(plan_raw)
+
+                        st.subheader(plan["startup_name"])
+                        st.caption(plan["tagline"])
+
+                        st.write(plan["problem_analysis"])
+                        st.write(plan["solution"])
+                        st.write(plan["target_users"])
+
+                        for f in plan["features"]:
+                            st.write(f"• {f}")
+
+                        st.write(plan["monetization"])
+
+                        for s in plan["build_steps"]:
+                            st.write(f"• {s}")
+
+                        st.json(plan["tech_stack"])
+                        st.write(plan["go_to_market"])
+
+                        # 📄 PDF
+                        from fpdf import FPDF
+                        pdf = FPDF()
+                        pdf.add_page()
+                        pdf.set_font("Arial", size=12)
+                        pdf.multi_cell(0, 10, plan_raw)
+
+                        pdf_bytes = pdf.output(dest='S').encode('latin-1')
+
+                        st.download_button(
+                            "📄 Download PDF",
+                            data=pdf_bytes,
+                            file_name=f"startup_{row['id']}.pdf",
+                            mime="application/pdf"
+                        )
+
+                    except:
                         st.write(plan_raw)
 
-                    else:
-                        try:
-                            plan = json.loads(plan_raw)
-
-                            st.subheader(plan["startup_name"])
-                            st.caption(plan["tagline"])
-
-                            st.write(plan["problem_analysis"])
-                            st.write(plan["solution"])
-                            st.write(plan["target_users"])
-
-                            for f in plan["features"]:
-                                st.write(f"• {f}")
-
-                            st.write(plan["monetization"])
-
-                            for s in plan["build_steps"]:
-                                st.write(f"• {s}")
-
-                            st.json(plan["tech_stack"])
-                            st.write(plan["go_to_market"])
-
-                            # ✅ PDF DOWNLOAD FIX
-                            from fpdf import FPDF
-
-                            pdf = FPDF()
-                            pdf.add_page()
-                            pdf.set_font("Arial", size=12)
-                            pdf.multi_cell(0, 10, plan_raw)
-
-                            pdf_bytes = pdf.output(dest='S').encode('latin-1')
-
-                            st.download_button(
-                                label="📄 Download PDF",
-                                data=pdf_bytes,
-                                file_name=f"startup_{row['id']}.pdf",
-                                mime="application/pdf"
-                            )
-
-                        except:
-                            st.write(plan_raw)
-
-    # ---- LOGOUT ----
     if st.button("Logout"):
         st.session_state.user = None
         st.session_state.token = None
@@ -203,7 +155,6 @@ def show_dashboard():
 # ---------------- AUTH ----------------
 if st.session_state.user:
     show_dashboard()
-
 else:
     page = st.radio("Select Page", ["Login", "Register", "Reset Password"], horizontal=True)
 
