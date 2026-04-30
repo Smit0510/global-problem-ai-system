@@ -6,7 +6,7 @@ from supabase_auth import (
     insert_problem,
     get_problems,
     delete_problem,
-    upvote_problem  # ✅ added
+    upvote_problem
 )
 from ai_generator import generate_problems
 
@@ -40,7 +40,7 @@ def show_dashboard():
 
     categories = ["Education", "Finance", "Health", "Productivity", "Startup", "Other"]
 
-    # 🔥 Auto category
+    # Auto category
     default_category = "Other"
     if problem:
         p = problem.lower()
@@ -64,7 +64,6 @@ def show_dashboard():
     tags = st.text_input("Tags (comma separated)")
 
     if st.button("Save Problem"):
-
         if problem and len(problem.strip()) > 5:
 
             insert_problem(
@@ -78,11 +77,10 @@ def show_dashboard():
             st.success("Problem saved!")
             st.session_state.problem_input = ""
             st.rerun()
-
         else:
             st.warning("Enter a meaningful problem")
 
-    # ---- AI SUGGESTIONS ----
+    # ---- AI ----
     st.subheader("💡 AI Suggestions")
 
     if st.button("Generate Ideas"):
@@ -90,7 +88,7 @@ def show_dashboard():
         for idea in ideas:
             st.markdown(f"💡 {idea}")
 
-    # ---- SEARCH + FILTER ----
+    # ---- SEARCH ----
     st.subheader("🔍 Search & Filter")
 
     search_query = st.text_input("Search problems")
@@ -125,31 +123,32 @@ def show_dashboard():
             st.info("No matching problems found")
             return
 
+        # ---- DISPLAY EACH PROBLEM ----
         for row in filtered:
-            col1, col2, col3 = st.columns([4, 1, 1])
 
-            # ---- PROBLEM CARD ----
+            st.markdown(f"""
+            <div style="padding:15px; border-radius:12px; background:#1e1e1e; margin-bottom:10px">
+                🚧 {row['problem']}<br><br>
+                <b>📂 Category:</b> {row.get('category','-')}<br>
+                <b>🏷️ Tags:</b> {row.get('tags','-')}<br><br>
+                <b>👍 Votes:</b> {row.get('votes',0)}
+            </div>
+            """, unsafe_allow_html=True)
+
+            # ACTION BUTTONS (VISIBLE ALWAYS)
+            col1, col2 = st.columns(2)
+
             with col1:
-                st.markdown(f"""
-                <div style="padding:10px; border-radius:10px; background:#1e1e1e; margin-bottom:10px">
-                    🚧 {row['problem']}<br><br>
-                    <b>📂 Category:</b> {row.get('category','-')}<br>
-                    <b>🏷️ Tags:</b> {row.get('tags','-')}
-                </div>
-                """, unsafe_allow_html=True)
-
-            # ---- VOTES ----
-            with col2:
-                votes = row.get("votes", 0)
-                st.write(f"👍 {votes}")
-
-            # ---- ACTIONS ----
-            with col3:
-                if st.button("👍", key=f"vote_{row['id']}"):
-                    upvote_problem(row["id"], votes, st.session_state.token)
+                if st.button("👍 Upvote", key=f"vote_{row['id']}"):
+                    upvote_problem(
+                        row["id"],
+                        row.get("votes", 0),
+                        st.session_state.token
+                    )
                     st.rerun()
 
-                if st.button("❌", key=f"del_{row['id']}"):
+            with col2:
+                if st.button("❌ Delete", key=f"del_{row['id']}"):
                     delete_problem(row["id"], st.session_state.token)
                     st.rerun()
 
