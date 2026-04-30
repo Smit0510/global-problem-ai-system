@@ -9,7 +9,7 @@ from supabase_auth import (
 )
 from ai_generator import generate_problems
 
-# ✅ MUST BE FIRST STREAMLIT COMMAND
+# ✅ MUST BE FIRST
 st.set_page_config(page_title="AI Problem Dashboard")
 
 # ---------------- SESSION ----------------
@@ -37,9 +37,28 @@ def show_dashboard():
         value=st.session_state.problem_input
     )
 
+    # 🔥 SMART CATEGORY AUTO-DETECT
+    categories = ["Education", "Finance", "Health", "Productivity", "Startup", "Other"]
+
+    default_category = "Other"
+
+    if problem:
+        p = problem.lower()
+        if "student" in p or "study" in p:
+            default_category = "Education"
+        elif "money" in p or "bill" in p:
+            default_category = "Finance"
+        elif "health" in p or "gym" in p:
+            default_category = "Health"
+        elif "focus" in p or "productivity" in p:
+            default_category = "Productivity"
+        elif "startup" in p:
+            default_category = "Startup"
+
     category = st.selectbox(
         "Select Category",
-        ["Education", "Finance", "Health", "Productivity", "Startup", "Other"]
+        categories,
+        index=categories.index(default_category)
     )
 
     tags = st.text_input(
@@ -78,6 +97,16 @@ def show_dashboard():
         for idea in suggestions:
             st.markdown(f"💡 {idea}")
 
+    # ---- SEARCH + FILTER ----
+    st.subheader("🔍 Search & Filter")
+
+    search_query = st.text_input("Search problems")
+
+    filter_category = st.selectbox(
+        "Filter by Category",
+        ["All"] + categories
+    )
+
     # ---- SHOW PROBLEMS ----
     st.subheader("📋 Your Problems")
 
@@ -85,7 +114,28 @@ def show_dashboard():
 
     if isinstance(data, list) and len(data) > 0:
 
+        # 🔥 APPLY FILTERS
+        filtered_data = []
+
         for row in data:
+            text = row.get("problem", "").lower()
+            cat = (row.get("category") or "").lower()
+
+            # search match
+            if search_query and search_query.lower() not in text:
+                continue
+
+            # category filter
+            if filter_category != "All" and cat != filter_category.lower():
+                continue
+
+            filtered_data.append(row)
+
+        if len(filtered_data) == 0:
+            st.info("No matching problems found")
+            return
+
+        for row in filtered_data:
             col1, col2 = st.columns([5, 1])
 
             with col1:
