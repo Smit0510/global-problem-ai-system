@@ -3,6 +3,42 @@ import streamlit as st
 # ✅ MUST BE FIRST
 st.set_page_config(page_title="AI Problem Dashboard")
 
+# 🎨 CUSTOM UI STYLE
+st.markdown("""
+<style>
+body {
+    background-color: #0e1117;
+}
+
+.block-container {
+    padding-top: 2rem;
+}
+
+.card {
+    background-color: #1c1f26;
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    box-shadow: 0px 2px 10px rgba(0,0,0,0.3);
+}
+
+.stButton>button {
+    border-radius: 10px;
+    padding: 8px 16px;
+    font-weight: 500;
+}
+
+h1, h2, h3 {
+    color: #ffffff;
+}
+
+p, span, div {
+    color: #d1d5db;
+}
+</style>
+""", unsafe_allow_html=True)
+
+
 from supabase_auth import (
     sign_up,
     sign_in,
@@ -28,8 +64,16 @@ if "problem_input" not in st.session_state:
 
 # ---------------- DASHBOARD ----------------
 def show_dashboard():
-    st.title("🚀 AI Problem Discovery Dashboard")
+
+    # 🎯 HEADER
+    st.markdown("""
+    <h1 style='text-align: center;'>🚀 AI Problem Discovery</h1>
+    <p style='text-align: center; color: gray;'>Find real-world problems & build startups</p>
+    """, unsafe_allow_html=True)
+
     st.success(f"Logged in as {st.session_state.user}")
+
+    st.markdown("###")
 
     # -------- ADD PROBLEM --------
     st.subheader("➕ Add Problem")
@@ -65,6 +109,8 @@ def show_dashboard():
         if st.button("🤖 Suggest Problems"):
             st.session_state.ai_problems = generate_problems("startup")
 
+    st.markdown("###")
+
     # -------- AI SUGGESTIONS --------
     if "ai_problems" in st.session_state:
 
@@ -75,7 +121,11 @@ def show_dashboard():
             col1, col2 = st.columns([4, 1])
 
             with col1:
-                st.write(f"👉 {p}")
+                st.markdown(f"""
+                <div class="card">
+                    💡 {p}
+                </div>
+                """, unsafe_allow_html=True)
 
             with col2:
                 if st.button("Use", key=f"use_{i}"):
@@ -95,7 +145,11 @@ def show_dashboard():
             col1, col2 = st.columns([4, 1])
 
             with col1:
-                st.markdown(f"- {row['problem']}")
+                st.markdown(f"""
+                <div class="card">
+                    🚧 {row['problem']}
+                </div>
+                """, unsafe_allow_html=True)
 
             with col2:
                 if st.button("❌", key=row["id"]):
@@ -165,7 +219,7 @@ else:
             else:
                 st.error(result.get("error_description", "Registration failed"))
 
-    # -------- RESET PASSWORD --------
+    # -------- RESET PASSWORD ----------
     elif page == "Reset Password":
 
         st.subheader("Reset Password")
