@@ -132,8 +132,9 @@ def show_dashboard():
 
                     plan_raw = generate_full_startup_plan(row["problem"])
 
-                    if not plan_raw:
+                    if not plan_raw or "ERROR:" in str(plan_raw):
                         st.error("AI failed")
+                        st.write(plan_raw)
                     else:
                         try:
                             plan = json.loads(plan_raw)
