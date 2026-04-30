@@ -97,25 +97,24 @@ else:
                 st.error("Invalid email or password")
 
     # ---------- REGISTER ----------
-    elif page == "Register":
+    # ---------- REGISTER ----------
+elif page == "Register":
 
-        st.subheader("Create Account")
+    st.subheader("Create Account")
 
-        email = st.text_input("Email", key="reg_email")
-        password = st.text_input("Password", type="password", key="reg_pass")
+    email = st.text_input("Email", key="reg_email")
+    password = st.text_input("Password", type="password", key="reg_pass")
 
-        if st.button("Register"):
+    if st.button("Register"):
 
-            result = sign_up(email, password)
+        result = sign_up(email, password)
 
-            st.write(result)  # 👈 TEMP DEBUG
+        st.write(result)  # 👈 TEMP DEBUG
 
-            if result and "user" in result:
-                st.success("Account created successfully")
-            else:
+        if result and "user" in result:
+            st.success("Account created successfully")
+        else:
             st.error(result.get("error", "Registration failed"))
-
-
     # ---------- RESET PASSWORD ----------
     elif page == "Reset Password":
 
