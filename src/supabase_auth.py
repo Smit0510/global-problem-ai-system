@@ -8,6 +8,8 @@ AUTH_URL = f"{SUPABASE_URL}/auth/v1"
 BASE_URL = f"{SUPABASE_URL}/rest/v1"
 
 
+# ---------------- AUTH ----------------
+
 def sign_up(email, password):
     res = requests.post(
         f"{AUTH_URL}/signup",
@@ -35,22 +37,30 @@ def reset_password(email):
     return res.json()
 
 
-# -------- DATABASE --------
+# ---------------- DATABASE ----------------
 
 def insert_problem(problem, token, email):
     res = requests.post(
         f"{BASE_URL}/problems",
         headers={
             "apikey": SUPABASE_KEY,
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json"
+            "Authorization": f"Bearer {token}",  # ✅ IMPORTANT (RLS)
+            "Content-Type": "application/json",
+            "Prefer": "return=representation"
         },
         json={
             "user_email": email,
             "problem": problem
         }
     )
-    return res.json()
+
+    try:
+        return res.json()
+    except:
+        return {
+            "error": res.text,
+            "status_code": res.status_code
+        }
 
 
 def get_problems(token):
@@ -58,7 +68,11 @@ def get_problems(token):
         f"{BASE_URL}/problems",
         headers={
             "apikey": SUPABASE_KEY,
-            "Authorization": f"Bearer {token}"
+            "Authorization": f"Bearer {token}"  # ✅ IMPORTANT
         }
     )
-    return res.json()
+
+    try:
+        return res.json()
+    except:
+        return []
