@@ -1,6 +1,9 @@
 import streamlit as st
 from supabase_auth import sign_up, sign_in, reset_password, insert_problem, get_problems, delete_problem
+from ai_generator import generate_problems
 
+if st.button("Test AI"):
+    st.write(generate_problems("students"))
 st.set_page_config(page_title="AI Problem Dashboard")
 
 # ---------------- SESSION ----------------
