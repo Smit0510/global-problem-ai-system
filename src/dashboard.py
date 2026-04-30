@@ -36,6 +36,7 @@ def show_dashboard():
                 st.error(f"Error: {result}")
             else:
                 st.success("Problem saved!")
+                st.rerun()
 
         else:
             st.warning("Enter a meaningful problem (min 5 characters)")
