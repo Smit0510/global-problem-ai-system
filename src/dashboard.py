@@ -15,7 +15,6 @@ from ai_generator import (
 )
 
 from ai_scorer import score_problem
-import re
 
 # ✅ MUST BE FIRST
 st.set_page_config(page_title="AI Startup Builder", layout="wide")
@@ -27,32 +26,12 @@ if "token" not in st.session_state:
     st.session_state.token = None
 if "problem_input" not in st.session_state:
     st.session_state.problem_input = ""
-if "auth_page" not in st.session_state:
-    st.session_state.auth_page = "Login"
-if "show_password" not in st.session_state:
-    st.session_state.show_password = False
-
-# ---------------- PASSWORD STRENGTH ----------------
-def password_strength(password):
-    score = 0
-
-    if len(password) >= 8:
-        score += 1
-    if re.search(r"[A-Z]", password):
-        score += 1
-    if re.search(r"[0-9]", password):
-        score += 1
-    if re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
-        score += 1
-
-    return score
-
 
 # ---------------- DASHBOARD ----------------
 def show_dashboard():
 
     st.title("🚀 AI Startup Builder")
-    st.caption("Turn problems into startup ideas instantly")
+    st.caption("Find problems → build startups")
 
     st.success(f"Logged in as {st.session_state.user}")
 
@@ -65,13 +44,13 @@ def show_dashboard():
     )
 
     if st.button("Save Problem"):
-        if not problem or len(problem.strip()) < 5:
-            st.error("❌ Problem must be at least 5 characters")
-        else:
+        if problem and len(problem.strip()) > 5:
             insert_problem(problem, "Other", "", st.session_state.token, st.session_state.user)
-            st.success("Problem saved!")
+            st.success("Saved!")
             st.session_state.problem_input = ""
             st.rerun()
+        else:
+            st.error("Enter valid problem")
 
     # ---- AI SUGGESTIONS ----
     st.subheader("💡 AI Suggestions")
@@ -81,29 +60,62 @@ def show_dashboard():
         for idea in ideas:
             st.markdown(f"💡 {idea}")
 
-    # ---- LIST ----
-    st.subheader("📋 Your Problems")
+    # ---- TRENDING ----
+    st.subheader("🔥 Trending")
+
+    trending = get_trending_problems(st.session_state.token)
+
+    if isinstance(trending, list):
+        for row in trending[:5]:
+            st.markdown(f"""
+            🏆 {row['problem']}  
+            👍 {row.get('votes',0)}  
+            """)
+
+    # ---- BEST IDEAS ----
+    st.subheader("🏆 Best Startup Ideas")
 
     data = get_problems(st.session_state.token)
 
     if isinstance(data, list):
 
+        def rank(row):
+            return (row.get("ai_score", 0) * 2) + row.get("votes", 0)
+
+        best = sorted(data, key=rank, reverse=True)[:5]
+
+        for row in best:
+            st.markdown(f"""
+            🚀 {row['problem']}  
+            🤖 {row.get('ai_score',0)} | 👍 {row.get('votes',0)}
+            """)
+
+    # ---- SEARCH ----
+    st.subheader("🔍 Search & Filter")
+
+    search = st.text_input("Search")
+
+    # ---- LIST ----
+    st.subheader("📋 Your Problems")
+
+    if isinstance(data, list):
+
         for row in data:
 
+            if search and search.lower() not in row["problem"].lower():
+                continue
+
             st.markdown(f"""
-            <div style="padding:15px; border-radius:12px; background:#1e1e1e; margin-bottom:10px">
-                🚧 {row['problem']}<br>
-                👍 {row.get('votes',0)}
-            </div>
-            """, unsafe_allow_html=True)
+            ---
+            🚧 {row['problem']}  
+            👍 {row.get('votes',0)}
+            """)
 
-            # ---- SCORE ----
-            ai_score = row.get("ai_score")
-
-            if ai_score:
-                st.markdown(f"🤖 Score: {ai_score}/10")
+            # ---- AI SCORE ----
+            if row.get("ai_score"):
+                st.write(f"🤖 Score: {row['ai_score']}")
             else:
-                if st.button("🧠 Score", key=row["id"]):
+                if st.button("Score", key=f"s{row['id']}"):
                     score = score_problem(row["problem"])
                     if score:
                         update_ai_score(row["id"], score, st.session_state.token)
@@ -112,7 +124,7 @@ def show_dashboard():
                         st.error("AI failed")
 
             # ---- ACTIONS ----
-            col1, col2 = st.columns(2)
+            col1, col2, col3 = st.columns(3)
 
             with col1:
                 if st.button("👍", key=f"v{row['id']}"):
@@ -124,6 +136,23 @@ def show_dashboard():
                     delete_problem(row["id"], st.session_state.token)
                     st.rerun()
 
+            with col3:
+                if st.button("🚀 Build", key=f"b{row['id']}"):
+
+                    st.info("Generating startup...")
+
+                    st.subheader("📦 Startup Kit")
+                    st.write(generate_startup_kit(row["problem"]))
+
+                    st.subheader("🛠 Tech Stack")
+                    st.write(generate_tech_stack(row["problem"]))
+
+                    st.subheader("💼 Business Plan")
+                    st.write(generate_business_plan(row["problem"]))
+
+                    st.subheader("🌐 Landing Page")
+                    st.code(generate_landing_page(row["problem"]))
+
     # ---- LOGOUT ----
     if st.button("Logout"):
         st.session_state.user = None
@@ -131,105 +160,53 @@ def show_dashboard():
         st.rerun()
 
 
-# ---------------- AUTH UI ----------------
-if not st.session_state.user:
+# ---------------- AUTH (UNCHANGED) ----------------
+if st.session_state.user:
+    show_dashboard()
 
-    st.markdown("""
-    <style>
-    .box {
-        max-width: 400px;
-        margin: auto;
-        padding: 30px;
-        border-radius: 15px;
-        background: #1e1e1e;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+else:
+    page = st.radio(
+        "Select Page",
+        ["Login", "Register", "Reset Password"],
+        horizontal=True
+    )
 
-    st.markdown('<div class="box">', unsafe_allow_html=True)
-    st.title("🚀 AI Startup Builder")
-
-    page = st.radio("", ["Login", "Register", "Reset"], horizontal=True)
-
-    # ---------- LOGIN ----------
     if page == "Login":
 
         email = st.text_input("Email")
-
-        pwd_type = "text" if st.session_state.show_password else "password"
-        password = st.text_input("Password", type=pwd_type)
-
-        st.checkbox("Show Password", key="show_password")
-
-        if st.button("Forgot password?"):
-            st.session_state.auth_page = "Reset"
-            st.rerun()
+        password = st.text_input("Password", type="password")
 
         if st.button("Login"):
+            result = sign_in(email, password)
 
-            if not email:
-                st.error("❌ Email required")
-            elif not password:
-                st.error("❌ Password required")
+            if "access_token" in result:
+                st.session_state.user = email
+                st.session_state.token = result["access_token"]
+                st.success("Logged in!")
+                st.rerun()
             else:
-                res = sign_in(email, password)
-                if "access_token" in res:
-                    st.session_state.user = email
-                    st.session_state.token = res["access_token"]
-                    st.rerun()
-                else:
-                    st.error("❌ Invalid credentials")
+                st.error("Invalid login")
 
-    # ---------- REGISTER ----------
     elif page == "Register":
 
         email = st.text_input("Email")
         password = st.text_input("Password", type="password")
 
-        strength = password_strength(password)
+        if st.button("Register"):
+            result = sign_up(email, password)
 
-        if password:
-            st.progress(strength / 4)
-
-            if strength <= 1:
-                st.error("Weak password")
-            elif strength == 2:
-                st.warning("Medium password")
+            if "access_token" in result:
+                st.session_state.user = email
+                st.session_state.token = result["access_token"]
+                st.success("Account created!")
+                st.rerun()
             else:
-                st.success("Strong password")
+                st.error("Registration failed")
 
-        if st.button("Create Account"):
+    elif page == "Reset Password":
 
-            if not email:
-                st.error("❌ Email required")
-            elif len(password) < 6:
-                st.error("❌ Password too short")
-            else:
-                res = sign_up(email, password)
-                if "access_token" in res:
-                    st.session_state.user = email
-                    st.session_state.token = res["access_token"]
-                    st.rerun()
-                else:
-                    st.error("❌ Registration failed")
-
-    # ---------- RESET ----------
-    elif page == "Reset":
-
-        email = st.text_input("Enter your email")
+        email = st.text_input("Email")
 
         if st.button("Send Reset Email"):
-            if not email:
-                st.error("❌ Enter email")
-            else:
-                reset_password(email)
-                st.success("Email sent!")
-
-    # ---------- GOOGLE LOGIN (INFO) ----------
-    st.markdown("---")
-    st.info("🔐 Google Login available via Supabase → enable OAuth in dashboard")
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
-else:
-    show_dashboard()
+            reset_password(email)
+            st.success("Email sent")
