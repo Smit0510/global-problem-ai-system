@@ -38,7 +38,6 @@ p, span, div {
 </style>
 """, unsafe_allow_html=True)
 
-
 from supabase_auth import (
     sign_up,
     sign_in,
@@ -65,7 +64,7 @@ if "problem_input" not in st.session_state:
 # ---------------- DASHBOARD ----------------
 def show_dashboard():
 
-    # 🎯 HEADER
+    # HEADER
     st.markdown("""
     <h1 style='text-align: center;'>🚀 AI Problem Discovery</h1>
     <p style='text-align: center; color: gray;'>Find real-world problems & build startups</p>
@@ -85,7 +84,7 @@ def show_dashboard():
 
     col1, col2 = st.columns([2, 1])
 
-    # ---- SAVE ----
+    # SAVE
     with col1:
         if st.button("💾 Save Problem"):
 
@@ -99,12 +98,11 @@ def show_dashboard():
 
                 st.success("Problem saved!")
                 st.session_state.problem_input = ""
-                st.rerun()
 
             else:
                 st.warning("Enter meaningful problem")
 
-    # ---- AI GENERATE ----
+    # AI GENERATE
     with col2:
         if st.button("🤖 Suggest Problems"):
             st.session_state.ai_problems = generate_problems("startup")
@@ -130,7 +128,6 @@ def show_dashboard():
             with col2:
                 if st.button("Use", key=f"use_{i}"):
                     st.session_state.problem_input = p
-                    st.rerun()
 
     st.markdown("---")
 
@@ -154,18 +151,17 @@ def show_dashboard():
             with col2:
                 if st.button("❌", key=row["id"]):
                     delete_problem(row["id"], st.session_state.token)
-                    st.rerun()
+                    st.success("Deleted!")
 
     else:
         st.info("No problems yet")
 
     st.markdown("---")
 
-    # -------- LOGOUT --------
+    # LOGOUT
     if st.button("Logout"):
         st.session_state.user = None
         st.session_state.token = None
-        st.rerun()
 
 
 # ---------------- AUTH ----------------
@@ -179,7 +175,7 @@ else:
         horizontal=True
     )
 
-    # -------- LOGIN --------
+    # LOGIN
     if page == "Login":
 
         st.subheader("Login")
@@ -195,11 +191,10 @@ else:
                 st.session_state.user = email
                 st.session_state.token = result["access_token"]
                 st.success("Logged in successfully!")
-                st.rerun()
             else:
                 st.error(result.get("error_description", "Invalid email or password"))
 
-    # -------- REGISTER --------
+    # REGISTER
     elif page == "Register":
 
         st.subheader("Create Account")
@@ -215,11 +210,10 @@ else:
                 st.session_state.user = email
                 st.session_state.token = result["access_token"]
                 st.success("Account created & logged in!")
-                st.rerun()
             else:
                 st.error(result.get("error_description", "Registration failed"))
 
-    # -------- RESET PASSWORD ----------
+    # RESET PASSWORD
     elif page == "Reset Password":
 
         st.subheader("Reset Password")
