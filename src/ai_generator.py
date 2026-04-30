@@ -4,41 +4,65 @@ from openai import OpenAI
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def generate_problems(topic="startup problems"):
-
-    prompt = f"""
-    Generate 5 real-world startup problems.
-
-    Topic: {topic}
-
-    Rules:
-    - Short (1 sentence each)
-    - Realistic
-    - Painful problems people face
-    - Do NOT number them
-    """
-
     try:
-        response = client.chat.completions.create(
+        prompt = f"""
+        Generate 5 real-world startup problems.
+        Topic: {topic}
+
+        Rules:
+        - Short (1 sentence)
+        - Realistic
+        """
+
+        res = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.7
+            messages=[{"role": "user", "content": prompt}]
         )
 
-        text = response.choices[0].message.content
+        text = res.choices[0].message.content
+        return [p.strip("- ").strip() for p in text.split("\n") if len(p.strip()) > 5]
 
-        print("RAW AI:", text)  # debug
+    except:
+        # fallback (no API)
+        return [
+            "People forget to pay bills on time",
+            "Students struggle to stay focused while studying",
+            "Freelancers struggle to find consistent clients",
+            "People find it hard to save money",
+            "Gym beginners don’t know what workout to follow"
+        ]
 
-        # split lines safely
-        lines = text.split("\n")
 
-        problems = []
-        for line in lines:
-            clean = line.strip("- ").strip()
-            if len(clean) > 10:
-                problems.append(clean)
+# 🔥 NEW FEATURE
+def generate_startup_kit(problem):
 
-        return problems
+    try:
+        prompt = f"""
+        Based on this problem:
 
-    except Exception as e:
-        print("AI ERROR:", e)
-        return ["Error generating ideas"]
+        {problem}
+
+        Generate:
+        1. Landing page headline (1 line)
+        2. Short product description (2 lines)
+        3. Investor pitch (3 lines)
+        """
+
+        res = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        return res.choices[0].message.content
+
+    except:
+        return f"""
+🚀 Landing Page:
+Solve: {problem}
+
+📱 App Description:
+An app designed to solve this problem effectively.
+
+💼 Pitch:
+We are building a solution for {problem} with strong market demand.
+"""
