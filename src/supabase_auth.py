@@ -1,8 +1,8 @@
-import streamlit as st
 import requests
+import os
 
-SUPABASE_URL = st.secrets["SUPABASE_URL"]
-SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
 BASE_URL = f"{SUPABASE_URL}/auth/v1"
 
