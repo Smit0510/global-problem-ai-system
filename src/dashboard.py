@@ -50,6 +50,7 @@ else:
 
             if "access_token" in result:
                 st.session_state.user = email
+                st.session_state.token = result["access_token"]   # ✅ store token
                 st.success("Logged in successfully!")
                 st.rerun()
             else:
