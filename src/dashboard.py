@@ -6,7 +6,7 @@ from supabase_auth import (
     insert_problem,
     get_problems,
     delete_problem,
-    upvote_problem   # ✅ ADD THIS
+    upvote_problem  # ✅ added
 )
 from ai_generator import generate_problems
 
@@ -38,11 +38,10 @@ def show_dashboard():
         value=st.session_state.problem_input
     )
 
-    # 🔥 SMART CATEGORY AUTO-DETECT
     categories = ["Education", "Finance", "Health", "Productivity", "Startup", "Other"]
 
+    # 🔥 Auto category
     default_category = "Other"
-
     if problem:
         p = problem.lower()
         if "student" in p or "study" in p:
@@ -51,7 +50,7 @@ def show_dashboard():
             default_category = "Finance"
         elif "health" in p or "gym" in p:
             default_category = "Health"
-        elif "focus" in p or "productivity" in p:
+        elif "focus" in p:
             default_category = "Productivity"
         elif "startup" in p:
             default_category = "Startup"
@@ -62,16 +61,13 @@ def show_dashboard():
         index=categories.index(default_category)
     )
 
-    tags = st.text_input(
-        "Tags (comma separated)",
-        placeholder="e.g. students, money, fitness"
-    )
+    tags = st.text_input("Tags (comma separated)")
 
     if st.button("Save Problem"):
 
         if problem and len(problem.strip()) > 5:
 
-            result = insert_problem(
+            insert_problem(
                 problem.strip(),
                 category,
                 tags,
@@ -79,23 +75,19 @@ def show_dashboard():
                 st.session_state.user
             )
 
-            if isinstance(result, dict) and "error" in result:
-                st.error(f"Error: {result}")
-            else:
-                st.success("Problem saved!")
-                st.session_state.problem_input = ""
-                st.rerun()
+            st.success("Problem saved!")
+            st.session_state.problem_input = ""
+            st.rerun()
 
         else:
-            st.warning("Enter a meaningful problem (min 5 characters)")
+            st.warning("Enter a meaningful problem")
 
     # ---- AI SUGGESTIONS ----
     st.subheader("💡 AI Suggestions")
 
     if st.button("Generate Ideas"):
-        suggestions = generate_problems(problem if problem else "startup problems")
-
-        for idea in suggestions:
+        ideas = generate_problems(problem if problem else "startup problems")
+        for idea in ideas:
             st.markdown(f"💡 {idea}")
 
     # ---- SEARCH + FILTER ----
@@ -115,30 +107,28 @@ def show_dashboard():
 
     if isinstance(data, list) and len(data) > 0:
 
-        # 🔥 APPLY FILTERS
-        filtered_data = []
+        filtered = []
 
         for row in data:
             text = row.get("problem", "").lower()
             cat = (row.get("category") or "").lower()
 
-            # search match
             if search_query and search_query.lower() not in text:
                 continue
 
-            # category filter
             if filter_category != "All" and cat != filter_category.lower():
                 continue
 
-            filtered_data.append(row)
+            filtered.append(row)
 
-        if len(filtered_data) == 0:
+        if len(filtered) == 0:
             st.info("No matching problems found")
             return
 
-        for row in filtered_data:
-            col1, col2 = st.columns([5, 1])
+        for row in filtered:
+            col1, col2, col3 = st.columns([4, 1, 1])
 
+            # ---- PROBLEM CARD ----
             with col1:
                 st.markdown(f"""
                 <div style="padding:10px; border-radius:10px; background:#1e1e1e; margin-bottom:10px">
@@ -148,8 +138,18 @@ def show_dashboard():
                 </div>
                 """, unsafe_allow_html=True)
 
+            # ---- VOTES ----
             with col2:
-                if st.button("❌", key=row["id"]):
+                votes = row.get("votes", 0)
+                st.write(f"👍 {votes}")
+
+            # ---- ACTIONS ----
+            with col3:
+                if st.button("👍", key=f"vote_{row['id']}"):
+                    upvote_problem(row["id"], votes, st.session_state.token)
+                    st.rerun()
+
+                if st.button("❌", key=f"del_{row['id']}"):
                     delete_problem(row["id"], st.session_state.token)
                     st.rerun()
 
@@ -174,53 +174,45 @@ else:
         horizontal=True
     )
 
-    # ---------- LOGIN ----------
     if page == "Login":
-
         st.subheader("Login")
 
-        email = st.text_input("Email", key="login_email")
-        password = st.text_input("Password", type="password", key="login_pass")
+        email = st.text_input("Email")
+        password = st.text_input("Password", type="password")
 
         if st.button("Login"):
-
             result = sign_in(email, password)
 
             if "access_token" in result:
                 st.session_state.user = email
                 st.session_state.token = result["access_token"]
-                st.success("Logged in successfully!")
+                st.success("Logged in!")
                 st.rerun()
             else:
-                st.error(result.get("error_description", "Invalid email or password"))
+                st.error("Invalid login")
 
-    # ---------- REGISTER ----------
     elif page == "Register":
-
         st.subheader("Create Account")
 
-        email = st.text_input("Email", key="reg_email")
-        password = st.text_input("Password", type="password", key="reg_pass")
+        email = st.text_input("Email")
+        password = st.text_input("Password", type="password")
 
         if st.button("Register"):
-
             result = sign_up(email, password)
 
             if "access_token" in result:
                 st.session_state.user = email
                 st.session_state.token = result["access_token"]
-                st.success("Account created & logged in!")
+                st.success("Account created!")
                 st.rerun()
             else:
-                st.error(result.get("error_description", "Registration failed"))
+                st.error("Registration failed")
 
-    # ---------- RESET PASSWORD ----------
     elif page == "Reset Password":
-
         st.subheader("Reset Password")
 
-        email = st.text_input("Email", key="reset_email")
+        email = st.text_input("Email")
 
         if st.button("Send Reset Email"):
             reset_password(email)
-            st.success("Password reset email sent")
+            st.success("Email sent")
