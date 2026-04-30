@@ -1,55 +1,44 @@
 import os
-import re
 from openai import OpenAI
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-def score_problem(problem):
+def generate_problems(topic="startup problems"):
 
     prompt = f"""
-    You are an expert startup analyst.
+    Generate 5 real-world startup problems.
 
-    Rate the following problem from 1 to 10 based on:
-    - Pain level
-    - Frequency
-    - Market size
+    Topic: {topic}
 
-    IMPORTANT:
-    - Return ONLY a number
-    - No explanation
-    - No text
-    - No symbols
-
-    Example output:
-    7.5
-
-    Problem: {problem}
+    Rules:
+    - Short (1 sentence each)
+    - Realistic
+    - Painful problems people face
+    - Do NOT number them
     """
 
     try:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.2   # 🔥 more consistent output
+            temperature=0.7
         )
 
-        text = response.choices[0].message.content.strip()
+        text = response.choices[0].message.content
 
-        print("RAW AI RESPONSE:", text)  # debug
+        print("RAW AI:", text)  # debug
 
-        # 🔥 Extract number safely using regex
-        match = re.search(r"\d+(\.\d+)?", text)
+        # split lines safely
+        lines = text.split("\n")
 
-        if match:
-            score = float(match.group())
+        problems = []
+        for line in lines:
+            clean = line.strip("- ").strip()
+            if len(clean) > 10:
+                problems.append(clean)
 
-            # clamp between 1–10
-            score = max(1, min(score, 10))
-
-            return round(score, 1)
-
-        return None
+        return problems
 
     except Exception as e:
         print("AI ERROR:", e)
-        return None
+        return ["Error generating ideas"]
