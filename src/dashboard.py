@@ -33,6 +33,12 @@ def show_dashboard():
 
     st.success(f"Logged in as {st.session_state.user}")
 
+    # 🧠 GLOBAL RANK FUNCTION
+    def calculate_rank(row):
+        ai = row.get("ai_score") or 0
+        votes = row.get("votes") or 0
+        return (ai * 2) + votes
+
     # ---- ADD PROBLEM ----
     st.subheader("➕ Add Problem")
 
@@ -117,17 +123,13 @@ def show_dashboard():
         ["All"] + categories
     )
 
+    # ---- GET DATA ONCE ----
+    data = get_problems(st.session_state.token)
+
     # ---- BEST STARTUP IDEAS ----
     st.subheader("🏆 Best Startup Ideas")
 
-    data = get_problems(st.session_state.token)
-
     if isinstance(data, list) and len(data) > 0:
-
-        def calculate_rank(row):
-            ai = row.get("ai_score") or 0
-            votes = row.get("votes") or 0
-            return (ai * 2) + votes
 
         ranked = sorted(
             data,
@@ -151,8 +153,6 @@ def show_dashboard():
     # ---- SHOW PROBLEMS ----
     st.subheader("📋 Your Problems")
 
-    data = get_problems(st.session_state.token)
-
     if isinstance(data, list) and len(data) > 0:
 
         filtered = []
@@ -173,6 +173,13 @@ def show_dashboard():
             st.info("No matching problems found")
             return
 
+        # 🔥 SORT BY RANK
+        filtered = sorted(
+            filtered,
+            key=lambda x: calculate_rank(x),
+            reverse=True
+        )
+
         for row in filtered:
 
             st.markdown(f"""
@@ -183,6 +190,9 @@ def show_dashboard():
                 <b>👍 Votes:</b> {row.get('votes',0)}
             </div>
             """, unsafe_allow_html=True)
+
+            # ⭐ RANK SCORE
+            st.markdown(f"⭐ Rank Score: **{calculate_rank(row)}**")
 
             # ---- AI SCORE ----
             ai_score = row.get("ai_score")
