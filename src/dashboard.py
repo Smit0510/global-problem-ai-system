@@ -10,7 +10,7 @@ from supabase_auth import (
     get_trending_problems,
     update_ai_score
 )
-from ai_generator import generate_problems
+from ai_generator import generate_problems, generate_startup_kit
 from ai_scorer import score_problem
 
 # ✅ MUST BE FIRST
@@ -19,13 +19,8 @@ st.set_page_config(page_title="AI Problem Dashboard", layout="wide")
 # 🎨 GLOBAL CSS
 st.markdown("""
 <style>
+.stApp { background-color: #0e1117; }
 
-/* Background */
-.stApp {
-    background-color: #0e1117;
-}
-
-/* Cards */
 .card {
     padding: 16px;
     border-radius: 14px;
@@ -34,7 +29,6 @@ st.markdown("""
     border: 1px solid #2a2d34;
 }
 
-/* Highlight */
 .card-highlight {
     padding: 16px;
     border-radius: 14px;
@@ -43,33 +37,10 @@ st.markdown("""
     border: 1px solid #2e5f3e;
 }
 
-/* Text */
-.title {
-    font-size: 17px;
-    font-weight: 600;
-    color: #fff;
-}
+.title { font-size: 17px; font-weight: 600; color: #fff; }
+.meta { font-size: 13px; color: #aaa; }
 
-.meta {
-    font-size: 13px;
-    color: #aaa;
-}
-
-/* Search */
-input {
-    border-radius: 10px !important;
-}
-
-/* Tag */
-.tag {
-    display: inline-block;
-    background: #2a2a2a;
-    padding: 4px 8px;
-    border-radius: 8px;
-    margin-right: 5px;
-    font-size: 12px;
-}
-
+input { border-radius: 10px !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -88,11 +59,11 @@ def show_dashboard():
 
     st.success(f"Logged in as {st.session_state.user}")
 
-    # 🧠 Rank function
+    # 🧠 Rank
     def calculate_rank(row):
         return (row.get("ai_score", 0) or 0) * 2 + (row.get("votes", 0) or 0)
 
-    # ---------------- ADD PROBLEM ----------------
+    # ---------------- ADD ----------------
     st.subheader("➕ Add Problem")
 
     problem = st.text_input("Enter a real-world problem", value=st.session_state.problem_input)
@@ -125,7 +96,7 @@ def show_dashboard():
     # ---------------- TABS ----------------
     tab1, tab2, tab3 = st.tabs(["📋 All", "🔥 Trending", "🏆 Best"])
 
-    # ---------------- TAB 1: ALL ----------------
+    # ---------------- TAB 1 ----------------
     with tab1:
 
         if data:
@@ -140,7 +111,7 @@ def show_dashboard():
 
             for row in filtered:
 
-                # AUTO AI
+                # 🔥 AUTO AI SCORING
                 if row.get("ai_score") is None:
                     score = score_problem(row["problem"])
                     if score:
@@ -162,20 +133,28 @@ def show_dashboard():
                 </div>
                 """, unsafe_allow_html=True)
 
-                col1, col2 = st.columns(2)
+                # ACTIONS
+                col1, col2, col3 = st.columns(3)
+
                 with col1:
                     if st.button("👍", key=f"v{row['id']}"):
                         upvote_problem(row["id"], row.get("votes", 0), st.session_state.token)
                         st.rerun()
+
                 with col2:
                     if st.button("❌", key=f"d{row['id']}"):
                         delete_problem(row["id"], st.session_state.token)
                         st.rerun()
 
+                with col3:
+                    if st.button("🚀 Build Startup", key=f"kit_{row['id']}"):
+                        kit = generate_startup_kit(row["problem"])
+                        st.info(kit)
+
         else:
             st.info("No problems yet")
 
-    # ---------------- TAB 2: TRENDING ----------------
+    # ---------------- TAB 2 ----------------
     with tab2:
 
         trending = get_trending_problems(st.session_state.token)
@@ -188,11 +167,10 @@ def show_dashboard():
                     <div class="meta">👍 {row.get('votes',0)}</div>
                 </div>
                 """, unsafe_allow_html=True)
-
         else:
             st.info("No trending data")
 
-    # ---------------- TAB 3: BEST ----------------
+    # ---------------- TAB 3 ----------------
     with tab3:
 
         if data:
@@ -208,7 +186,6 @@ def show_dashboard():
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-
         else:
             st.info("No data yet")
 
