@@ -90,3 +90,22 @@ def delete_problem(problem_id, token):
     )
 
     return res.status_code
+
+def upvote_problem(problem_id, current_votes, token):
+    import requests
+
+    new_votes = (current_votes or 0) + 1
+
+    res = requests.patch(
+        f"{SUPABASE_URL}/rest/v1/problems?id=eq.{problem_id}",
+        headers={
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        },
+        json={
+            "votes": new_votes
+        }
+    )
+
+    return res.status_code
