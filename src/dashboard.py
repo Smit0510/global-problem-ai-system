@@ -1,5 +1,4 @@
 import streamlit as st
-from supabase_auth import get_trending_problems
 from supabase_auth import (
     sign_up,
     sign_in,
@@ -7,7 +6,8 @@ from supabase_auth import (
     insert_problem,
     get_problems,
     delete_problem,
-    upvote_problem
+    upvote_problem,
+    get_trending_problems   # ✅ added
 )
 from ai_generator import generate_problems
 
@@ -41,7 +41,6 @@ def show_dashboard():
 
     categories = ["Education", "Finance", "Health", "Productivity", "Startup", "Other"]
 
-    # Auto category
     default_category = "Other"
     if problem:
         p = problem.lower()
@@ -89,6 +88,25 @@ def show_dashboard():
         for idea in ideas:
             st.markdown(f"💡 {idea}")
 
+    # ---- 🔥 TRENDING ----
+    st.subheader("🔥 Trending Problems")
+
+    trending = get_trending_problems(st.session_state.token)
+
+    if isinstance(trending, list) and len(trending) > 0:
+
+        for row in trending[:5]:  # top 5
+            st.markdown(f"""
+            <div style="padding:10px; border-radius:10px; background:#262626; margin-bottom:10px">
+                🏆 <b>{row['problem']}</b><br>
+                👍 Votes: {row.get('votes',0)}<br>
+                📂 {row.get('category','-')}
+            </div>
+            """, unsafe_allow_html=True)
+
+    else:
+        st.info("No trending data yet")
+
     # ---- SEARCH ----
     st.subheader("🔍 Search & Filter")
 
@@ -124,7 +142,6 @@ def show_dashboard():
             st.info("No matching problems found")
             return
 
-        # ---- DISPLAY EACH PROBLEM ----
         for row in filtered:
 
             st.markdown(f"""
@@ -136,7 +153,6 @@ def show_dashboard():
             </div>
             """, unsafe_allow_html=True)
 
-            # ACTION BUTTONS (VISIBLE ALWAYS)
             col1, col2 = st.columns(2)
 
             with col1:
