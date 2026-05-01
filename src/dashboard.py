@@ -3,7 +3,6 @@ from supabase_auth import (
     sign_up, sign_in, reset_password,
     insert_problem, get_problems, delete_problem,
     upvote_problem, get_trending_problems,
-    update_ai_score,
     insert_profile, get_profile
 )
 
@@ -109,69 +108,82 @@ def show_dashboard():
                         st.session_state.build_count += 1
                         st.rerun()
 
-            # ---------------- SHOW GENERATED PLAN ----------------
+            # ---------------- SHOW PLAN ----------------
             if row["id"] in st.session_state.generated_plans:
 
                 import json, re
 
                 plan_raw = st.session_state.generated_plans[row["id"]]
 
+                # ✅ CLEAN TEXT (VERY IMPORTANT)
+                match = re.search(r"\{.*\}", plan_raw, re.DOTALL)
+                clean = match.group() if match else plan_raw
+
+                clean = clean.replace("→", "->")
+                clean = clean.replace("₹", "Rs")
+                clean = clean.replace("’", "'")
+
+                # remove bad chars for safety
+                safe_clean = clean.encode("ascii", "ignore").decode()
+
+                # ---- TRY PARSE ----
+                parsed = None
                 try:
-                    # ✅ Extract clean JSON
-                    match = re.search(r"\{.*\}", plan_raw, re.DOTALL)
-                    clean = match.group() if match else plan_raw
+                    parsed = json.loads(safe_clean)
+                except:
+                    parsed = None
 
-                    clean = clean.replace("→", "->")
+                # ---- UI DISPLAY ----
+                if parsed:
+                    st.subheader(parsed.get("startup_name", "Startup"))
+                    st.caption(parsed.get("tagline", ""))
 
-                    plan = json.loads(clean)
+                    st.write(parsed.get("problem_analysis", ""))
+                    st.write(parsed.get("solution", ""))
+                    st.write(parsed.get("target_users", ""))
 
-                    st.subheader(plan.get("startup_name", "Startup"))
-                    st.caption(plan.get("tagline", ""))
-
-                    st.write(plan.get("problem_analysis", ""))
-                    st.write(plan.get("solution", ""))
-                    st.write(plan.get("target_users", ""))
-
-                    for f in plan.get("features", []):
+                    for f in parsed.get("features", []):
                         st.write(f"• {f}")
 
-                    if "validation_plan" in plan:
+                    if "validation_plan" in parsed:
                         st.subheader("Validation Plan")
-                        for v in plan["validation_plan"]:
+                        for v in parsed["validation_plan"]:
                             st.write(f"• {v}")
 
-                    if "first_users_plan" in plan:
+                    if "first_users_plan" in parsed:
                         st.subheader("First Users Plan")
-                        for u in plan["first_users_plan"]:
+                        for u in parsed["first_users_plan"]:
                             st.write(f"• {u}")
 
-                    st.write(plan.get("revenue_plan", ""))
+                    st.write(parsed.get("revenue_plan", ""))
 
-                    for s in plan.get("build_steps", []):
+                    for s in parsed.get("build_steps", []):
                         st.write(f"• {s}")
 
-                    st.json(plan.get("tech_stack", {}))
-                    st.write(plan.get("go_to_market", ""))
+                    st.json(parsed.get("tech_stack", {}))
+                    st.write(parsed.get("go_to_market", ""))
 
-                    # ✅ PDF DOWNLOAD (FIXED)
-                    from fpdf import FPDF
-                    pdf = FPDF()
-                    pdf.add_page()
-                    pdf.set_font("Arial", size=12)
-                    pdf.multi_cell(0, 10, clean)
-
-                    pdf_bytes = pdf.output(dest='S').encode('latin-1')
-
-                    st.download_button(
-                        "📄 Download PDF",
-                        data=pdf_bytes,
-                        file_name=f"startup_{row['id']}.pdf",
-                        mime="application/pdf"
-                    )
-
-                except Exception as e:
-                    st.error("Parsing failed")
+                else:
+                    st.warning("⚠️ AI format issue — showing raw output")
                     st.code(plan_raw)
+
+                # ✅ PDF ALWAYS WORKS (OUTSIDE PARSE)
+                from fpdf import FPDF
+
+                pdf = FPDF()
+                pdf.add_page()
+                pdf.set_font("Arial", size=12)
+
+                pdf.multi_cell(0, 10, safe_clean)
+
+                pdf_bytes = pdf.output(dest='S').encode('latin-1')
+
+                st.download_button(
+                    "📄 Download PDF",
+                    data=pdf_bytes,
+                    file_name=f"startup_{row['id']}.pdf",
+                    mime="application/pdf"
+                )
 
     # ---- LOGOUT ----
     if st.button("Logout"):
