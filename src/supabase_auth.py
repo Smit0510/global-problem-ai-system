@@ -44,7 +44,7 @@ def insert_profile(user_id, first_name, last_name):
         f"{BASE_URL}/profiles",
         headers={
             "apikey": SUPABASE_KEY,
-            "Authorization": f"Bearer {SUPABASE_KEY},
+            "Authorization": f"Bearer {SUPABASE_KEY}",  # ✅ FIXED
             "Content-Type": "application/json"
         },
         json={
@@ -78,7 +78,7 @@ def get_profile(user_id):
         return None
 
 
-# ---------------- BUILD LIMIT (NEW) ----------------
+# ---------------- BUILD LIMIT ----------------
 
 def get_build_data(user_id):
     res = requests.get(
@@ -107,6 +107,20 @@ def increment_build_count(user_id, current_count):
             "Content-Type": "application/json"
         },
         json={"build_count": new_count}
+    )
+
+    return res.json()
+
+
+def upgrade_to_pro(user_id):
+    res = requests.patch(
+        f"{BASE_URL}/profiles?id=eq.{user_id}",
+        headers={
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}",
+            "Content-Type": "application/json"
+        },
+        json={"is_pro": True}
     )
 
     return res.json()
