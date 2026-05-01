@@ -1,6 +1,6 @@
 import streamlit as st
 import requests
-import os
+import streamlit.components.v1 as components
 
 from supabase_auth import (
     sign_up, sign_in, reset_password,
@@ -30,6 +30,7 @@ if "name" not in st.session_state:
 if "problem_input" not in st.session_state:
     st.session_state.problem_input = ""
 
+
 # ---------------- DASHBOARD ----------------
 def show_dashboard():
 
@@ -58,13 +59,11 @@ def show_dashboard():
     )
 
     if st.button("Save Problem"):
-
         if not st.session_state.user:
             st.error("User not logged in properly")
             return
 
         if problem and len(problem.strip()) > 5:
-
             insert_problem(
                 problem,
                 "Other",
@@ -72,30 +71,11 @@ def show_dashboard():
                 st.session_state.token,
                 st.session_state.user
             )
-
             st.success("Saved!")
             st.session_state.problem_input = ""
             st.rerun()
-
         else:
             st.error("Enter valid problem")
-
-    # ---- AI IDEAS ----
-    st.subheader("💡 AI Suggestions")
-
-    if st.button("Generate Ideas"):
-        ideas = generate_problems(problem if problem else "startup problems")
-        for idea in ideas:
-            st.markdown(f"💡 {idea}")
-
-    # ---- TRENDING ----
-    st.subheader("🔥 Trending")
-
-    trending = get_trending_problems(st.session_state.token)
-
-    if isinstance(trending, list):
-        for row in trending[:5]:
-            st.markdown(f"🏆 {row['problem']}  \n👍 {row.get('votes', 0)}")
 
     # ---- USER PROBLEMS ----
     st.subheader("📋 Your Problems")
@@ -107,13 +87,7 @@ def show_dashboard():
         for row in data:
 
             st.markdown(f"""
-            <div style="
-                padding:15px;
-                border-radius:10px;
-                border:1px solid #ddd;
-                margin-bottom:10px;
-                background-color:#fafafa;
-            ">
+            <div style="padding:15px;border-radius:10px;border:1px solid #ddd;margin-bottom:10px;">
                 <b>🚧 {row['problem']}</b><br>
                 👍 {row.get('votes', 0)} votes
             </div>
@@ -121,22 +95,23 @@ def show_dashboard():
 
             col1, col2, col3 = st.columns(3)
 
-            # 👍 UPVOTE
+            # 👍
             with col1:
-                if st.button("👍 Upvote", key=f"v{row['id']}"):
+                if st.button("👍", key=f"v{row['id']}"):
                     upvote_problem(row["id"], row.get("votes", 0), st.session_state.token)
                     st.rerun()
 
-            # ❌ DELETE
+            # ❌
             with col2:
-                if st.button("❌ Delete", key=f"d{row['id']}"):
+                if st.button("❌", key=f"d{row['id']}"):
                     delete_problem(row["id"], st.session_state.token)
                     st.rerun()
 
             # 🚀 BUILD + PAYMENT
             with col3:
 
-                if st.button("🚀 Build Startup", key=f"b{row['id']}"):
+                # 🚀 BUILD
+                if st.button("🚀 Build", key=f"b{row['id']}"):
 
                     if not is_pro and build_count >= 3:
                         st.error("🚫 Free limit reached")
@@ -148,11 +123,11 @@ def show_dashboard():
                             build_count,
                             st.session_state.token
                         )
-
                         st.rerun()
 
-                # 💳 PAYMENT BUTTON
+                # 💳 PAYMENT
                 if not is_pro and build_count >= 3:
+
                     if st.button("💳 Pay Now", key=f"pay_{row['id']}"):
 
                         try:
@@ -163,8 +138,35 @@ def show_dashboard():
 
                             data = res.json()
 
-                            st.success("✅ Order Created!")
-                            st.json(data)
+                            order_id = data.get("id") or data.get("order_id")
+
+                            if not order_id:
+                                st.error("❌ Order ID missing")
+                                st.json(data)
+
+                            else:
+                                st.success("✅ Order Created!")
+
+                                checkout_html = f"""
+                                <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+                                <script>
+                                var options = {{
+                                    "key": "rzp_live_Sk3uDNJeDvuR3s",
+                                    "amount": "29900",
+                                    "currency": "INR",
+                                    "name": "AI Startup Builder",
+                                    "description": "Upgrade to Pro",
+                                    "order_id": "{order_id}",
+                                    "handler": function (response){{
+                                        alert("Payment Successful! ID: " + response.razorpay_payment_id);
+                                    }}
+                                }};
+                                var rzp = new Razorpay(options);
+                                rzp.open();
+                                </script>
+                                """
+
+                                components.html(checkout_html, height=0)
 
                         except Exception as e:
                             st.error(f"Payment error: {e}")
@@ -176,47 +178,15 @@ def show_dashboard():
                     st.warning("🔒 Upgrade to view this startup plan")
                     continue
 
-                import json, re
-
-                plan_raw = st.session_state.generated_plans[row["id"]]
-
-                match = re.search(r"\{.*\}", plan_raw, re.DOTALL)
-                clean = match.group() if match else plan_raw
-
-                clean = clean.replace("→", "->")
-                clean = clean.replace("₹", "Rs")
-
-                safe_clean = clean.encode("ascii", "ignore").decode()
-
-                try:
-                    parsed = json.loads(safe_clean)
-                except:
-                    parsed = None
-
-                if parsed:
-                    st.subheader(parsed.get("startup_name", "Startup"))
-                    st.caption(parsed.get("tagline", ""))
-
-                    st.write(parsed.get("problem_analysis", ""))
-                    st.write(parsed.get("solution", ""))
-                    st.write(parsed.get("target_users", ""))
-
-                    for f in parsed.get("features", []):
-                        st.write(f"• {f}")
-
-                    st.write(parsed.get("revenue_plan", ""))
-
-                else:
-                    st.code(plan_raw)
+                st.write(st.session_state.generated_plans[row["id"]])
 
     else:
-        st.info("No problems found for this user")
+        st.info("No problems found")
 
     # ---- LOGOUT ----
     if st.button("Logout"):
         st.session_state.user = None
         st.session_state.token = None
-        st.session_state.name = "User"
         st.rerun()
 
 
@@ -225,7 +195,7 @@ if st.session_state.user:
     show_dashboard()
 
 else:
-    page = st.radio("Select Page", ["Login", "Register", "Reset Password"], horizontal=True)
+    page = st.radio("Select Page", ["Login", "Register"], horizontal=True)
 
     if page == "Login":
         email = st.text_input("Email")
@@ -244,20 +214,14 @@ else:
 
                 if not profile:
                     insert_profile(user_id, "User", "", st.session_state.token)
-                    profile = get_profile(user_id, st.session_state.token)
 
-                if profile:
-                    st.session_state.name = f"{profile['first_name']} {profile['last_name']}"
-                else:
-                    st.session_state.name = "User"
-
+                st.session_state.name = "User"
                 st.rerun()
+
             else:
                 st.error("Invalid login")
 
     elif page == "Register":
-
-        st.subheader("Create Account")
 
         email = st.text_input("Email")
         password = st.text_input("Password", type="password")
@@ -266,13 +230,6 @@ else:
             result = sign_up(email, password)
 
             if "user" in result:
-                st.success("Account created! Please login.")
+                st.success("Account created! Login now")
             else:
                 st.error("Registration failed")
-
-    elif page == "Reset Password":
-        email = st.text_input("Email")
-
-        if st.button("Send Reset Email"):
-            reset_password(email)
-            st.success("Email sent")
