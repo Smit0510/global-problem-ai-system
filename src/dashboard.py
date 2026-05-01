@@ -3,7 +3,8 @@ from supabase_auth import (
     sign_up, sign_in, reset_password,
     insert_problem, get_problems, delete_problem,
     upvote_problem, get_trending_problems,
-    insert_profile, get_profile
+    insert_profile, get_profile,
+    get_build_data, increment_build_count   # ✅ NEW
 )
 
 from ai_generator import generate_problems, generate_full_startup_plan
@@ -13,9 +14,6 @@ st.set_page_config(page_title="AI Startup Builder", layout="wide")
 # ---------------- SESSION ----------------
 if "generated_plans" not in st.session_state:
     st.session_state.generated_plans = {}
-
-if "build_count" not in st.session_state:
-    st.session_state.build_count = 0
 
 if "user" not in st.session_state:
     st.session_state.user = None
@@ -35,19 +33,6 @@ def show_dashboard():
 
     st.title("🚀 AI Startup Builder")
     st.caption("Find problems → build startups")
-
-    # ---- STYLE ----
-    st.markdown("""
-    <style>
-    .card {
-        padding: 15px;
-        border-radius: 10px;
-        border: 1px solid #ddd;
-        margin-bottom: 10px;
-        background-color: #fafafa;
-    }
-    </style>
-    """, unsafe_allow_html=True)
 
     st.success(f"Welcome {st.session_state.name} 👋")
 
@@ -110,7 +95,13 @@ def show_dashboard():
 
             # ---- CARD ----
             st.markdown(f"""
-            <div class="card">
+            <div style="
+                padding:15px;
+                border-radius:10px;
+                border:1px solid #ddd;
+                margin-bottom:10px;
+                background-color:#fafafa;
+            ">
                 <b>🚧 {row['problem']}</b><br>
                 👍 {row.get('votes',0)} votes
             </div>
@@ -118,23 +109,28 @@ def show_dashboard():
 
             col1, col2, col3 = st.columns(3)
 
-            # 👍 UPVOTE
+            # 👍
             with col1:
                 if st.button("👍 Upvote", key=f"v{row['id']}"):
                     upvote_problem(row["id"], row.get("votes", 0), st.session_state.token)
                     st.rerun()
 
-            # ❌ DELETE
+            # ❌
             with col2:
                 if st.button("❌ Delete", key=f"d{row['id']}"):
                     delete_problem(row["id"], st.session_state.token)
                     st.rerun()
 
-            # 🚀 BUILD
+            # 🚀 BUILD (REAL LOGIC)
             with col3:
                 if st.button("🚀 Build Startup", key=f"b{row['id']}"):
 
-                    if st.session_state.build_count >= 3:
+                    user_data = get_build_data(st.session_state.user)
+
+                    build_count = user_data.get("build_count", 0)
+                    is_pro = user_data.get("is_pro", False)
+
+                    if not is_pro and build_count >= 3:
 
                         st.error("🚫 Free limit reached")
 
@@ -143,24 +139,21 @@ def show_dashboard():
 
                         Unlock:
                         - Unlimited startup builds
-                        - Better AI quality (coming soon)
+                        - Better AI quality
                         - Priority features
 
                         💰 Price: $5/month
                         """)
 
-                        if st.button("💳 Upgrade Now", key=f"pay{row['id']}"):
-                            st.info("Stripe integration coming soon")
-
                     else:
                         st.session_state.generated_plans[row["id"]] = generate_full_startup_plan(row["problem"])
-                        st.session_state.build_count += 1
+
+                        increment_build_count(st.session_state.user, build_count)
+
                         st.rerun()
 
-            # 🚫 BLOCK PLAN IF PAYWALL ACTIVE
-            is_locked = st.session_state.build_count >= 3
-
-            if not is_locked and row["id"] in st.session_state.generated_plans:
+            # ---- SHOW PLAN (NO LOCK BASED ON SESSION ❌)
+            if row["id"] in st.session_state.generated_plans:
 
                 import json, re
 
