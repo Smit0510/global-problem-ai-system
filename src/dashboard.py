@@ -128,6 +128,7 @@ def show_dashboard():
                         st.session_state.user,
                         st.session_state.token
                     )
+                    st.write("DEBUG BUILD DATA:", user_data)
 
                     build_count = user_data.get("build_count", 0)
                     is_pro = user_data.get("is_pro", False)
