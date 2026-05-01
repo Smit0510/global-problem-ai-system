@@ -1,6 +1,4 @@
 import streamlit as st
-import os
-
 from supabase_auth import (
     sign_up, sign_in, reset_password,
     insert_problem, get_problems, delete_problem,
@@ -10,7 +8,6 @@ from supabase_auth import (
 )
 
 from ai_generator import generate_problems, generate_full_startup_plan
-from payment import create_order   # ✅ Razorpay
 
 st.set_page_config(page_title="AI Startup Builder", layout="wide")
 
@@ -96,6 +93,7 @@ def show_dashboard():
 
         for row in data:
 
+            # ---- CARD ----
             st.markdown(f"""
             <div style="
                 padding:15px;
@@ -123,66 +121,46 @@ def show_dashboard():
                     delete_problem(row["id"], st.session_state.token)
                     st.rerun()
 
-            # 🚀 BUILD
+            # 🚀 BUILD STARTUP
             with col3:
                 if st.button("🚀 Build Startup", key=f"b{row['id']}"):
 
-                    user_data = get_build_data(st.session_state.user)
+                    user_data = get_build_data(
+                        st.session_state.user,
+                        st.session_state.token
+                    )
+
                     build_count = user_data.get("build_count", 0)
                     is_pro = user_data.get("is_pro", False)
 
-                    # 🚫 LIMIT HIT
+                    # 🚫 LIMIT CHECK
                     if not is_pro and build_count >= 3:
 
                         st.error("🚫 Free limit reached")
 
                         st.markdown("""
                         ### 🚀 Upgrade to Pro
+
                         Unlock:
                         - Unlimited startup builds
                         - Better AI quality
                         - Priority features
 
-                        💰 Price: ₹500/month
+                        💰 Price: $5/month
                         """)
 
-                        # 💳 PAYMENT BUTTON
-                        if st.button("💳 Pay & Upgrade", key=f"pay{row['id']}"):
-
-                            order = create_order(500)
-
-                            st.markdown(f"""
-                            <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-
-                            <button id="pay-btn">Pay ₹500</button>
-
-                            <script>
-                            var options = {{
-                                "key": "{os.getenv('RAZORPAY_KEY_ID')}",
-                                "amount": "{order['amount']}",
-                                "currency": "INR",
-                                "name": "AI Startup Builder",
-                                "description": "Pro Plan",
-                                "order_id": "{order['id']}",
-                                "handler": function (response){{
-                                    alert("Payment successful!");
-                                }}
-                            }};
-
-                            var rzp = new Razorpay(options);
-
-                            document.getElementById('pay-btn').onclick = function(e){{
-                                rzp.open();
-                                e.preventDefault();
-                            }}
-                            </script>
-                            """, unsafe_allow_html=True)
+                        st.info("Payment integration coming next 🚀")
 
                     else:
-                        # ✅ ALLOW BUILD
+                        # ✅ GENERATE PLAN
                         st.session_state.generated_plans[row["id"]] = generate_full_startup_plan(row["problem"])
 
-                        increment_build_count(st.session_state.user, build_count)
+                        # ✅ UPDATE DB COUNT
+                        increment_build_count(
+                            st.session_state.user,
+                            build_count,
+                            st.session_state.token
+                        )
 
                         st.rerun()
 
@@ -198,6 +176,7 @@ def show_dashboard():
 
                 clean = clean.replace("→", "->")
                 clean = clean.replace("₹", "Rs")
+                clean = clean.replace("’", "'")
 
                 safe_clean = clean.encode("ascii", "ignore").decode()
 
@@ -217,10 +196,44 @@ def show_dashboard():
                     for f in parsed.get("features", []):
                         st.write(f"• {f}")
 
+                    if "validation_plan" in parsed:
+                        st.subheader("Validation Plan")
+                        for v in parsed["validation_plan"]:
+                            st.write(f"• {v}")
+
+                    if "first_users_plan" in parsed:
+                        st.subheader("First Users Plan")
+                        for u in parsed["first_users_plan"]:
+                            st.write(f"• {u}")
+
                     st.write(parsed.get("revenue_plan", ""))
 
+                    for s in parsed.get("build_steps", []):
+                        st.write(f"• {s}")
+
+                    st.json(parsed.get("tech_stack", {}))
+                    st.write(parsed.get("go_to_market", ""))
+
                 else:
+                    st.warning("⚠️ AI format issue — showing raw output")
                     st.code(plan_raw)
+
+                # ---- PDF ----
+                from fpdf import FPDF
+
+                pdf = FPDF()
+                pdf.add_page()
+                pdf.set_font("Arial", size=12)
+                pdf.multi_cell(0, 10, safe_clean)
+
+                pdf_bytes = pdf.output(dest='S').encode('latin-1')
+
+                st.download_button(
+                    "📄 Download PDF",
+                    data=pdf_bytes,
+                    file_name=f"startup_{row['id']}.pdf",
+                    mime="application/pdf"
+                )
 
     else:
         st.info("No problems found for this user")
