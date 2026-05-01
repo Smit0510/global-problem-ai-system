@@ -74,9 +74,9 @@ def show_dashboard():
 
     # ---- USER PROBLEMS ----
     st.subheader("📋 Your Problems")
-
-    data = get_problems(st.session_state.token)
-
+    
+    data = get_problems(st.session_state.token, st.session_state.user)
+    
     if isinstance(data, list):
 
         for row in data:
