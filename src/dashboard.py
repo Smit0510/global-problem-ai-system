@@ -3,7 +3,8 @@ from supabase_auth import (
     sign_up, sign_in, reset_password,
     insert_problem, get_problems, delete_problem,
     upvote_problem, get_trending_problems,
-    update_ai_score
+    update_ai_score,
+    insert_profile, get_profile
 )
 
 from ai_generator import generate_problems, generate_full_startup_plan
@@ -24,8 +25,12 @@ if "user" not in st.session_state:
 if "token" not in st.session_state:
     st.session_state.token = None
 
+if "name" not in st.session_state:
+    st.session_state.name = "User"
+
 if "problem_input" not in st.session_state:
     st.session_state.problem_input = ""
+
 
 # ---------------- DASHBOARD ----------------
 def show_dashboard():
@@ -33,7 +38,7 @@ def show_dashboard():
     st.title("🚀 AI Startup Builder")
     st.caption("Find problems → build startups")
 
-    st.success(f"Logged in as {st.session_state.user}")
+    st.success(f"Welcome {st.session_state.name} 👋")
 
     st.subheader("➕ Add Problem")
 
@@ -91,7 +96,6 @@ def show_dashboard():
             with col3:
                 if st.button("🚀 Build", key=f"b{row['id']}"):
 
-                    # 🔒 FREE LIMIT
                     if st.session_state.build_count >= 3:
                         st.warning("Free limit reached. Upgrade coming soon 🚀")
                         return
@@ -119,7 +123,17 @@ def show_dashboard():
                         for f in plan["features"]:
                             st.write(f"• {f}")
 
-                        st.write(plan["monetization"])
+                        if "validation_plan" in plan:
+                            st.subheader("Validation Plan")
+                            for v in plan["validation_plan"]:
+                                st.write(f"• {v}")
+
+                        if "first_users_plan" in plan:
+                            st.subheader("First Users Plan")
+                            for u in plan["first_users_plan"]:
+                                st.write(f"• {u}")
+
+                        st.write(plan.get("revenue_plan", ""))
 
                         for s in plan["build_steps"]:
                             st.write(f"• {s}")
@@ -127,7 +141,7 @@ def show_dashboard():
                         st.json(plan["tech_stack"])
                         st.write(plan["go_to_market"])
 
-                        # 📄 PDF
+                        # PDF
                         from fpdf import FPDF
                         pdf = FPDF()
                         pdf.add_page()
@@ -149,43 +163,82 @@ def show_dashboard():
     if st.button("Logout"):
         st.session_state.user = None
         st.session_state.token = None
+        st.session_state.name = "User"
         st.rerun()
 
 
 # ---------------- AUTH ----------------
 if st.session_state.user:
     show_dashboard()
+
 else:
     page = st.radio("Select Page", ["Login", "Register", "Reset Password"], horizontal=True)
 
+    # -------- LOGIN --------
     if page == "Login":
         email = st.text_input("Email")
         password = st.text_input("Password", type="password")
 
         if st.button("Login"):
             result = sign_in(email, password)
+
             if "access_token" in result:
-                st.session_state.user = email
+
+                user_id = result["user"]["id"]
+
+                st.session_state.user = user_id
                 st.session_state.token = result["access_token"]
+
+                profile = get_profile(user_id)
+                if profile:
+                    st.session_state.name = f"{profile['first_name']} {profile['last_name']}"
+                else:
+                    st.session_state.name = "User"
+
                 st.rerun()
             else:
                 st.error("Invalid login")
 
+    # -------- REGISTER --------
     elif page == "Register":
+
+        st.subheader("Create Account")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            first_name = st.text_input("First Name")
+
+        with col2:
+            last_name = st.text_input("Last Name")
+
         email = st.text_input("Email")
         password = st.text_input("Password", type="password")
 
         if st.button("Register"):
-            result = sign_up(email, password)
-            if "access_token" in result:
-                st.session_state.user = email
-                st.session_state.token = result["access_token"]
-                st.rerun()
-            else:
-                st.error("Registration failed")
 
+            if not first_name or not last_name:
+                st.error("Enter full name")
+
+            elif not email or not password:
+                st.error("Email & password required")
+
+            else:
+                result = sign_up(email, password)
+
+                if "user" in result:
+                    user_id = result["user"]["id"]
+
+                    insert_profile(user_id, first_name, last_name)
+
+                    st.success("Account created! Please login.")
+                else:
+                    st.error("Registration failed")
+
+    # -------- RESET --------
     elif page == "Reset Password":
         email = st.text_input("Email")
+
         if st.button("Send Reset Email"):
             reset_password(email)
             st.success("Email sent")
