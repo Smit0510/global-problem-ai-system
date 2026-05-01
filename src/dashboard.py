@@ -162,8 +162,9 @@ def show_dashboard():
                         mime="application/pdf"
                     )
 
-                except:
-                    st.write(plan_raw)
+                except Exception as e:
+                    st.error("Parsing failed")
+                    st.code(plan_raw)
 
     # ---- LOGOUT ----
     if st.button("Logout"):
