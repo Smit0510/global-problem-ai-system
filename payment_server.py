@@ -1,36 +1,37 @@
-import os
-import razorpay
 from flask import Flask, request, jsonify
+import razorpay
+import os
 
 app = Flask(__name__)
 
-RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID")
-RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET")
+# ✅ Razorpay keys (set in Render ENV)
+RAZORPAY_KEY = os.getenv("RAZORPAY_KEY")
+RAZORPAY_SECRET = os.getenv("RAZORPAY_SECRET")
 
-client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
+client = razorpay.Client(auth=(RAZORPAY_KEY, RAZORPAY_SECRET))
 
 
-# ✅ CREATE ORDER API
+@app.route("/")
+def home():
+    return "Server is running"
+
+
 @app.route("/create-order", methods=["POST"])
 def create_order():
+    try:
+        data = request.json
+        user_id = data.get("user_id")
 
-    data = request.json
-    user_id = data.get("user_id")
+        order = client.order.create({
+            "amount": 29900,  # ₹299
+            "currency": "INR",
+            "payment_capture": 1
+        })
 
-    order = client.order.create({
-        "amount": 29900,  # ₹299
-        "currency": "INR",
-        "payment_capture": 1,
-        "notes": {
-            "user_id": user_id
-        }
-    })
+        return jsonify({
+            "order_id": order["id"],
+            "amount": order["amount"]
+        })
 
-    return jsonify(order)
-
-
-if __name__ == "__main__":
-    if __name__ == "__main__":
-    import os
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
