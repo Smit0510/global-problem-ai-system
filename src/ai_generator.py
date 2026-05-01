@@ -47,32 +47,74 @@ def clean_json(text):
 def generate_full_startup_plan(problem):
     try:
         prompt = f"""
-        You are an expert startup advisor.
+You are a startup founder who has built and launched real startups.
 
-        Problem:
-        {problem}
+Your job is to create a PRACTICAL execution plan — not theory.
 
-        Return ONLY valid JSON:
+Problem:
+{problem}
 
-        {{
-          "startup_name": "",
-          "tagline": "",
-          "problem_analysis": "",
-          "solution": "",
-          "target_users": "",
-          "features": [],
-          "monetization": "",
-          "build_steps": [],
-          "tech_stack": {{
-            "frontend": "",
-            "backend": "",
-            "database": "",
-            "ai_tools": "",
-            "deployment": ""
-          }},
-          "go_to_market": ""
-        }}
-        """
+STRICT RULES:
+- Output ONLY valid JSON
+- No extra text
+- No generic startup buzzwords
+- Be specific (platforms, actions, numbers)
+- Focus on getting FIRST 10 USERS
+
+FORMAT:
+
+{{
+  "startup_name": "",
+  "tagline": "",
+
+  "problem_analysis": "Explain why this problem actually matters in real life",
+
+  "solution": "Explain exactly what the product does in simple terms",
+
+  "target_users": "Be very specific (example: college students preparing for exams)",
+
+  "features": [
+    "Real feature with purpose",
+    "Another practical feature"
+  ],
+
+  "validation_plan": [
+    "Post in specific communities (example: Reddit r/startups)",
+    "Talk to 10 real users",
+    "Ask if they will pay"
+  ],
+
+  "mvp_scope": [
+    "Build only core feature",
+    "Do NOT build extra features",
+    "Simple UI only"
+  ],
+
+  "first_users_plan": [
+    "Where to find users (Reddit, WhatsApp, Discord)",
+    "How to message them directly",
+    "Offer free beta access"
+  ],
+
+  "revenue_plan": "Explain how to earn first ₹1000",
+
+  "build_steps": [
+    "Step 1: Validate problem",
+    "Step 2: Build MVP",
+    "Step 3: Launch",
+    "Step 4: Get first users"
+  ],
+
+  "tech_stack": {{
+    "frontend": "",
+    "backend": "",
+    "database": "",
+    "deployment": ""
+  }},
+
+  "go_to_market": "Step-by-step launch strategy"
+}}
+"""
 
         res = client.chat.completions.create(
             model="gpt-4o-mini",
@@ -84,7 +126,7 @@ def generate_full_startup_plan(problem):
         return clean_json(raw)
 
     except Exception:
-        # 🔥 DYNAMIC FALLBACK (NO API)
+        # 🔥 STRONG FALLBACK (NO API NEEDED)
         problem_lower = problem.lower()
 
         name = "StartupX"
@@ -100,18 +142,51 @@ def generate_full_startup_plan(problem):
         return f"""{{
   "startup_name": "{name}",
   "tagline": "Solving: {problem}",
-  "problem_analysis": "{problem} is a common issue affecting many people.",
-  "solution": "A digital platform that helps solve this problem efficiently.",
-  "target_users": "People facing this problem",
-  "features": ["Core feature", "Tracking", "Analytics", "User dashboard"],
-  "monetization": "Freemium subscription model",
-  "build_steps": ["Validate idea", "Build MVP", "Launch", "Get users"],
+  "problem_analysis": "{problem} is a real problem people face in daily life.",
+  "solution": "A focused product that directly solves this problem with simple UX.",
+  "target_users": "People facing this specific problem",
+
+  "features": [
+    "Core feature solving main problem",
+    "Simple tracking system",
+    "User dashboard"
+  ],
+
+  "validation_plan": [
+    "Post about this problem in Reddit communities",
+    "Talk to 10 real users facing this issue",
+    "Ask if they would pay for solution"
+  ],
+
+  "mvp_scope": [
+    "Build only 1 core feature",
+    "No complex UI",
+    "No extra features"
+  ],
+
+  "first_users_plan": [
+    "Share in WhatsApp/Telegram groups",
+    "Post in niche Reddit communities",
+    "Reach out to 20 people manually"
+  ],
+
+  "revenue_plan": "Charge ₹199/month after getting first users",
+
+  "monetization": "Freemium → subscription",
+
+  "build_steps": [
+    "Validate problem",
+    "Build MVP",
+    "Launch simple landing page",
+    "Get first 10 users"
+  ],
+
   "tech_stack": {{
     "frontend": "React",
     "backend": "FastAPI",
     "database": "PostgreSQL",
-    "ai_tools": "None",
     "deployment": "Render"
   }},
-  "go_to_market": "Social media + online communities"
+
+  "go_to_market": "Start with communities + direct outreach"
 }}"""
