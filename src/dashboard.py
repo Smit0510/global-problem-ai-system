@@ -8,7 +8,6 @@ from supabase_auth import (
 )
 
 from ai_generator import generate_problems, generate_full_startup_plan
-from ai_scorer import score_problem
 
 st.set_page_config(page_title="AI Startup Builder", layout="wide")
 
@@ -40,6 +39,7 @@ def show_dashboard():
 
     st.success(f"Welcome {st.session_state.name} 👋")
 
+    # ---- ADD PROBLEM ----
     st.subheader("➕ Add Problem")
 
     problem = st.text_input(
@@ -56,6 +56,7 @@ def show_dashboard():
         else:
             st.error("Enter valid problem")
 
+    # ---- AI IDEAS ----
     st.subheader("💡 AI Suggestions")
 
     if st.button("Generate Ideas"):
@@ -63,6 +64,7 @@ def show_dashboard():
         for idea in ideas:
             st.markdown(f"💡 {idea}")
 
+    # ---- TRENDING ----
     st.subheader("🔥 Trending")
 
     trending = get_trending_problems(st.session_state.token)
@@ -71,6 +73,7 @@ def show_dashboard():
         for row in trending[:5]:
             st.markdown(f"🏆 {row['problem']}  \n👍 {row.get('votes',0)}")
 
+    # ---- USER PROBLEMS ----
     st.subheader("📋 Your Problems")
 
     data = get_problems(st.session_state.token)
@@ -83,83 +86,86 @@ def show_dashboard():
 
             col1, col2, col3 = st.columns(3)
 
+            # 👍
             with col1:
                 if st.button("👍", key=f"v{row['id']}"):
                     upvote_problem(row["id"], row.get("votes", 0), st.session_state.token)
                     st.rerun()
 
+            # ❌
             with col2:
                 if st.button("❌", key=f"d{row['id']}"):
                     delete_problem(row["id"], st.session_state.token)
                     st.rerun()
 
+            # 🚀 BUILD
             with col3:
                 if st.button("🚀 Build", key=f"b{row['id']}"):
 
                     if st.session_state.build_count >= 3:
                         st.warning("Free limit reached. Upgrade coming soon 🚀")
-                        return
-
-                    st.info("Generating...")
-
-                    import json
-
-                    if row["id"] not in st.session_state.generated_plans:
+                    else:
                         st.session_state.generated_plans[row["id"]] = generate_full_startup_plan(row["problem"])
                         st.session_state.build_count += 1
+                        st.rerun()
 
-                    plan_raw = st.session_state.generated_plans[row["id"]]
+            # ✅ SHOW PLAN OUTSIDE BUTTON (IMPORTANT FIX)
+            if row["id"] in st.session_state.generated_plans:
 
-                    try:
-                        plan = json.loads(plan_raw)
+                import json
+                plan_raw = st.session_state.generated_plans[row["id"]]
 
-                        st.subheader(plan["startup_name"])
-                        st.caption(plan["tagline"])
+                try:
+                    plan = json.loads(plan_raw)
 
-                        st.write(plan["problem_analysis"])
-                        st.write(plan["solution"])
-                        st.write(plan["target_users"])
+                    st.subheader(plan["startup_name"])
+                    st.caption(plan["tagline"])
 
-                        for f in plan["features"]:
-                            st.write(f"• {f}")
+                    st.write(plan["problem_analysis"])
+                    st.write(plan["solution"])
+                    st.write(plan["target_users"])
 
-                        if "validation_plan" in plan:
-                            st.subheader("Validation Plan")
-                            for v in plan["validation_plan"]:
-                                st.write(f"• {v}")
+                    for f in plan["features"]:
+                        st.write(f"• {f}")
 
-                        if "first_users_plan" in plan:
-                            st.subheader("First Users Plan")
-                            for u in plan["first_users_plan"]:
-                                st.write(f"• {u}")
+                    if "validation_plan" in plan:
+                        st.subheader("Validation Plan")
+                        for v in plan["validation_plan"]:
+                            st.write(f"• {v}")
 
-                        st.write(plan.get("revenue_plan", ""))
+                    if "first_users_plan" in plan:
+                        st.subheader("First Users Plan")
+                        for u in plan["first_users_plan"]:
+                            st.write(f"• {u}")
 
-                        for s in plan["build_steps"]:
-                            st.write(f"• {s}")
+                    st.write(plan.get("revenue_plan", ""))
 
-                        st.json(plan["tech_stack"])
-                        st.write(plan["go_to_market"])
+                    for s in plan["build_steps"]:
+                        st.write(f"• {s}")
 
-                        # PDF
-                        from fpdf import FPDF
-                        pdf = FPDF()
-                        pdf.add_page()
-                        pdf.set_font("Arial", size=12)
-                        pdf.multi_cell(0, 10, plan_raw)
+                    st.json(plan["tech_stack"])
+                    st.write(plan["go_to_market"])
 
-                        pdf_bytes = pdf.output(dest='S').encode('latin-1')
+                    # 📄 PDF (NOW ALWAYS WORKS)
+                    from fpdf import FPDF
+                    pdf = FPDF()
+                    pdf.add_page()
+                    pdf.set_font("Arial", size=12)
+                    pdf.multi_cell(0, 10, plan_raw)
 
-                        st.download_button(
-                            "📄 Download PDF",
-                            data=pdf_bytes,
-                            file_name=f"startup_{row['id']}.pdf",
-                            mime="application/pdf"
-                        )
+                    pdf_bytes = pdf.output(dest='S').encode('latin-1')
 
-                    except:
-                        st.write(plan_raw)
+                    st.download_button(
+                        "📄 Download PDF",
+                        data=pdf_bytes,
+                        file_name=f"startup_{row['id']}.pdf",
+                        mime="application/pdf"
+                    )
 
+                except:
+                    st.write(plan_raw)
+
+    # ---- LOGOUT ----
     if st.button("Logout"):
         st.session_state.user = None
         st.session_state.token = None
@@ -174,7 +180,7 @@ if st.session_state.user:
 else:
     page = st.radio("Select Page", ["Login", "Register", "Reset Password"], horizontal=True)
 
-    # -------- LOGIN --------
+    # LOGIN
     if page == "Login":
         email = st.text_input("Email")
         password = st.text_input("Password", type="password")
@@ -183,7 +189,6 @@ else:
             result = sign_in(email, password)
 
             if "access_token" in result:
-
                 user_id = result["user"]["id"]
 
                 st.session_state.user = user_id
@@ -199,7 +204,7 @@ else:
             else:
                 st.error("Invalid login")
 
-    # -------- REGISTER --------
+    # REGISTER
     elif page == "Register":
 
         st.subheader("Create Account")
@@ -235,7 +240,7 @@ else:
                 else:
                     st.error("Registration failed")
 
-    # -------- RESET --------
+    # RESET
     elif page == "Reset Password":
         email = st.text_input("Email")
 
