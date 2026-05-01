@@ -93,7 +93,6 @@ def show_dashboard():
 
         for row in data:
 
-            # ---- CARD ----
             st.markdown(f"""
             <div style="
                 padding:15px;
@@ -109,19 +108,19 @@ def show_dashboard():
 
             col1, col2, col3 = st.columns(3)
 
-            # 👍 UPVOTE
+            # 👍
             with col1:
                 if st.button("👍 Upvote", key=f"v{row['id']}"):
                     upvote_problem(row["id"], row.get("votes", 0), st.session_state.token)
                     st.rerun()
 
-            # ❌ DELETE
+            # ❌
             with col2:
                 if st.button("❌ Delete", key=f"d{row['id']}"):
                     delete_problem(row["id"], st.session_state.token)
                     st.rerun()
 
-            # 🚀 BUILD STARTUP
+            # 🚀 BUILD
             with col3:
                 if st.button("🚀 Build Startup", key=f"b{row['id']}"):
 
@@ -133,7 +132,6 @@ def show_dashboard():
                     build_count = user_data.get("build_count", 0)
                     is_pro = user_data.get("is_pro", False)
 
-                    # 🚫 LIMIT CHECK
                     if not is_pro and build_count >= 3:
 
                         st.error("🚫 Free limit reached")
@@ -149,13 +147,9 @@ def show_dashboard():
                         💰 Price: $5/month
                         """)
 
-                        st.info("Payment integration coming next 🚀")
-
                     else:
-                        # ✅ GENERATE PLAN
                         st.session_state.generated_plans[row["id"]] = generate_full_startup_plan(row["problem"])
 
-                        # ✅ UPDATE DB COUNT
                         increment_build_count(
                             st.session_state.user,
                             build_count,
@@ -266,7 +260,9 @@ else:
                 st.session_state.user = user_id
                 st.session_state.token = result["access_token"]
 
-                profile = get_profile(user_id)
+                # ✅ FIXED HERE
+                profile = get_profile(user_id, st.session_state.token)
+
                 if profile:
                     st.session_state.name = f"{profile['first_name']} {profile['last_name']}"
                 else:
@@ -305,7 +301,14 @@ else:
                 if "user" in result:
                     user_id = result["user"]["id"]
 
-                    insert_profile(user_id, first_name, last_name)
+                    # ✅ FIXED HERE
+                    insert_profile(
+                        user_id,
+                        first_name,
+                        last_name,
+                        result["access_token"] if "access_token" in result else ""
+                    )
+
                     st.success("Account created! Please login.")
                 else:
                     st.error("Registration failed")
