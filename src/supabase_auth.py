@@ -44,13 +44,15 @@ def insert_profile(user_id, first_name, last_name):
         f"{BASE_URL}/profiles",
         headers={
             "apikey": SUPABASE_KEY,
-            "Authorization": f"Bearer {SUPABASE_KEY}",
+            "Authorization": f"Bearer {SUPABASE_KEY},
             "Content-Type": "application/json"
         },
         json={
             "id": user_id,
             "first_name": first_name,
-            "last_name": last_name
+            "last_name": last_name,
+            "build_count": 0,
+            "is_pro": False
         }
     )
 
@@ -76,6 +78,40 @@ def get_profile(user_id):
         return None
 
 
+# ---------------- BUILD LIMIT (NEW) ----------------
+
+def get_build_data(user_id):
+    res = requests.get(
+        f"{BASE_URL}/profiles?id=eq.{user_id}&select=build_count,is_pro",
+        headers={
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}"
+        }
+    )
+
+    try:
+        data = res.json()
+        return data[0] if data else {"build_count": 0, "is_pro": False}
+    except:
+        return {"build_count": 0, "is_pro": False}
+
+
+def increment_build_count(user_id, current_count):
+    new_count = (current_count or 0) + 1
+
+    res = requests.patch(
+        f"{BASE_URL}/profiles?id=eq.{user_id}",
+        headers={
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}",
+            "Content-Type": "application/json"
+        },
+        json={"build_count": new_count}
+    )
+
+    return res.json()
+
+
 # ---------------- PROBLEMS ----------------
 
 def insert_problem(problem, category, tags, token, user_id):
@@ -96,9 +132,6 @@ def insert_problem(problem, category, tags, token, user_id):
         }
     )
 
-    print("INSERT STATUS:", res.status_code)
-    print("INSERT RESPONSE:", res.text)
-
     try:
         return res.json()
     except:
@@ -106,9 +139,6 @@ def insert_problem(problem, category, tags, token, user_id):
 
 
 def get_problems(token, user_id):
-
-    print("FETCH USER ID:", user_id)
-
     res = requests.get(
         f"{BASE_URL}/problems?user_id=eq.{user_id}",
         headers={
@@ -118,9 +148,7 @@ def get_problems(token, user_id):
     )
 
     try:
-        data = res.json()
-        print("FILTERED DATA:", data)
-        return data
+        return res.json()
     except:
         return []
 
@@ -144,8 +172,7 @@ def upvote_problem(problem_id, current_votes, token):
         headers={
             "apikey": SUPABASE_KEY,
             "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-            "Prefer": "return=representation"
+            "Content-Type": "application/json"
         },
         json={"votes": new_votes}
     )
@@ -166,18 +193,3 @@ def get_trending_problems(token):
         return res.json()
     except:
         return []
-
-
-def update_ai_score(problem_id, score, token):
-    res = requests.patch(
-        f"{BASE_URL}/problems?id=eq.{problem_id}",
-        headers={
-            "apikey": SUPABASE_KEY,
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-            "Prefer": "return=representation"
-        },
-        json={"ai_score": score}
-    )
-
-    return res.json()
