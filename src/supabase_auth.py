@@ -96,6 +96,9 @@ def insert_problem(problem, category, tags, token, user_id):
         }
     )
 
+    print("INSERT STATUS:", res.status_code)
+    print("INSERT RESPONSE:", res.text)
+
     try:
         return res.json()
     except:
@@ -107,7 +110,7 @@ def get_problems(token, user_id):
     print("FETCH USER ID:", user_id)
 
     res = requests.get(
-        f"{BASE_URL}/problems",
+        f"{BASE_URL}/problems?user_id=eq.{user_id}",
         headers={
             "apikey": SUPABASE_KEY,
             "Authorization": f"Bearer {token}"
@@ -116,11 +119,8 @@ def get_problems(token, user_id):
 
     try:
         data = res.json()
-        print("ALL DATA:", data)
-
-        # 🔥 MANUAL FILTER (NO SUPABASE FILTER ISSUE)
-        return [row for row in data if str(row.get("user_id")) == str(user_id)]
-
+        print("FILTERED DATA:", data)
+        return data
     except:
         return []
 
