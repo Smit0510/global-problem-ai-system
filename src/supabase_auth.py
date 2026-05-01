@@ -37,13 +37,50 @@ def reset_password(email):
     return res.json()
 
 
-# ---------------- DATABASE ----------------
+# ---------------- PROFILE ----------------
+
+def insert_profile(user_id, first_name, last_name):
+    res = requests.post(
+        f"{BASE_URL}/profiles",
+        headers={
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}",
+            "Content-Type": "application/json"
+        },
+        json={
+            "id": user_id,
+            "first_name": first_name,
+            "last_name": last_name
+        }
+    )
+
+    try:
+        return res.json()
+    except:
+        return {"error": res.text}
+
+
+def get_profile(user_id):
+    res = requests.get(
+        f"{BASE_URL}/profiles?id=eq.{user_id}",
+        headers={
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}",
+        }
+    )
+
+    try:
+        data = res.json()
+        return data[0] if data else None
+    except:
+        return None
+
+
+# ---------------- PROBLEMS ----------------
 
 def insert_problem(problem, category, tags, token, user_id):
-    import requests
-
     res = requests.post(
-        f"{SUPABASE_URL}/rest/v1/problems",
+        f"{BASE_URL}/problems",
         headers={
             "apikey": SUPABASE_KEY,
             "Authorization": f"Bearer {token}",
@@ -55,7 +92,7 @@ def insert_problem(problem, category, tags, token, user_id):
             "category": category,
             "tags": tags,
             "votes": 0,
-            "user_id": user_id   # ✅ correct
+            "user_id": user_id
         }
     )
 
@@ -63,7 +100,6 @@ def insert_problem(problem, category, tags, token, user_id):
         return res.json()
     except:
         return {"error": res.text}
-
 
 
 def get_problems(token):
@@ -81,7 +117,6 @@ def get_problems(token):
         return []
 
 
-# 🔥 NEW: DELETE FUNCTION
 def delete_problem(problem_id, token):
     res = requests.delete(
         f"{BASE_URL}/problems?id=eq.{problem_id}",
@@ -90,63 +125,44 @@ def delete_problem(problem_id, token):
             "Authorization": f"Bearer {token}"
         }
     )
-
     return res.status_code
 
-def upvote_problem(problem_id, current_votes, token):
-    import requests
 
+def upvote_problem(problem_id, current_votes, token):
     new_votes = int(current_votes or 0) + 1
 
     res = requests.patch(
-        f"{SUPABASE_URL}/rest/v1/problems?id=eq.{problem_id}",
+        f"{BASE_URL}/problems?id=eq.{problem_id}",
         headers={
             "apikey": SUPABASE_KEY,
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
-            "Prefer": "return=representation"   # 🔥 IMPORTANT
+            "Prefer": "return=representation"
         },
         json={"votes": new_votes}
     )
 
-    print("STATUS:", res.status_code)
-    print("RESPONSE:", res.text)
-
     return res.json()
 
-def get_trending_problems(token):
-    import requests
 
+def get_trending_problems(token):
     res = requests.get(
-        f"{SUPABASE_URL}/rest/v1/problems?select=*&order=votes.desc",
+        f"{BASE_URL}/problems?select=*&order=votes.desc",
         headers={
             "apikey": SUPABASE_KEY,
             "Authorization": f"Bearer {token}"
         }
     )
 
-    return res.json()
+    try:
+        return res.json()
+    except:
+        return []
+
 
 def update_ai_score(problem_id, score, token):
-    import requests
-
     res = requests.patch(
-        f"{SUPABASE_URL}/rest/v1/problems?id=eq.{problem_id}",
-        headers={
-            "apikey": SUPABASE_KEY,
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json"
-        },
-        json={"ai_score": score}
-    )
-
-    return res.status_code
-
-def update_ai_score(problem_id, score, token):
-    import requests
-
-    res = requests.patch(
-        f"{SUPABASE_URL}/rest/v1/problems?id=eq.{problem_id}",
+        f"{BASE_URL}/problems?id=eq.{problem_id}",
         headers={
             "apikey": SUPABASE_KEY,
             "Authorization": f"Bearer {token}",
