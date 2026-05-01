@@ -36,7 +36,7 @@ def show_dashboard():
 
     st.success(f"Welcome {st.session_state.name} 👋")
 
-    # ✅ GET BUILD DATA ONCE
+    # ✅ GET BUILD DATA
     user_data = get_build_data(
         st.session_state.user,
         st.session_state.token
@@ -119,13 +119,13 @@ def show_dashboard():
 
             col1, col2, col3 = st.columns(3)
 
-            # 👍 UPVOTE
+            # 👍
             with col1:
                 if st.button("👍 Upvote", key=f"v{row['id']}"):
                     upvote_problem(row["id"], row.get("votes", 0), st.session_state.token)
                     st.rerun()
 
-            # ❌ DELETE
+            # ❌
             with col2:
                 if st.button("❌ Delete", key=f"d{row['id']}"):
                     delete_problem(row["id"], st.session_state.token)
@@ -151,10 +151,8 @@ def show_dashboard():
                         """)
 
                     else:
-                        # GENERATE
                         st.session_state.generated_plans[row["id"]] = generate_full_startup_plan(row["problem"])
 
-                        # UPDATE COUNT
                         increment_build_count(
                             st.session_state.user,
                             build_count,
@@ -166,7 +164,6 @@ def show_dashboard():
             # ---- SHOW PLAN ----
             if row["id"] in st.session_state.generated_plans:
 
-                # 🚫 BLOCK VIEW ALSO
                 if not is_pro and build_count >= 3:
                     st.warning("🔒 Upgrade to view this startup plan")
                     continue
@@ -237,8 +234,19 @@ else:
                 st.session_state.user = user_id
                 st.session_state.token = result["access_token"]
 
+                # 🔥 AUTO CREATE PROFILE IF NOT EXISTS
                 profile = get_profile(user_id, st.session_state.token)
 
+                if not profile:
+                    insert_profile(
+                        user_id,
+                        "User",
+                        "",
+                        st.session_state.token
+                    )
+                    profile = get_profile(user_id, st.session_state.token)
+
+                # ✅ SET NAME
                 if profile:
                     st.session_state.name = f"{profile['first_name']} {profile['last_name']}"
                 else:
@@ -268,15 +276,6 @@ else:
             result = sign_up(email, password)
 
             if "user" in result:
-                user_id = result["user"]["id"]
-
-                insert_profile(
-                    user_id,
-                    first_name,
-                    last_name,
-                    result.get("access_token", "")
-                )
-
                 st.success("Account created! Please login.")
             else:
                 st.error("Registration failed")
