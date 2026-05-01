@@ -36,11 +36,15 @@ def show_dashboard():
     st.title("🚀 AI Startup Builder")
     st.caption("Find problems → build startups")
 
-    # 🎨 STYLE
+    # ---- STYLE ----
     st.markdown("""
     <style>
-    button {
-        border-radius: 8px !important;
+    .card {
+        padding: 15px;
+        border-radius: 10px;
+        border: 1px solid #ddd;
+        margin-bottom: 10px;
+        background-color: #fafafa;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -104,40 +108,34 @@ def show_dashboard():
 
         for row in data:
 
-            # 🎯 CARD UI
+            # ---- CARD ----
             st.markdown(f"""
-            <div style="
-                background-color:#111;
-                padding:20px;
-                border-radius:10px;
-                margin-bottom:10px;
-                border:1px solid #333;
-            ">
-                <h4 style="margin:0;">🚧 {row['problem']}</h4>
-                <p style="color:gray;">👍 {row.get('votes',0)} votes</p>
+            <div class="card">
+                <b>🚧 {row['problem']}</b><br>
+                👍 {row.get('votes',0)} votes
             </div>
             """, unsafe_allow_html=True)
 
             col1, col2, col3 = st.columns(3)
 
-            # 👍
+            # 👍 UPVOTE
             with col1:
                 if st.button("👍 Upvote", key=f"v{row['id']}"):
                     upvote_problem(row["id"], row.get("votes", 0), st.session_state.token)
                     st.rerun()
 
-            # ❌
+            # ❌ DELETE
             with col2:
-                if st.button("Delete", key=f"d{row['id']}"):
+                if st.button("❌ Delete", key=f"d{row['id']}"):
                     delete_problem(row["id"], st.session_state.token)
                     st.rerun()
 
-            # 🚀
+            # 🚀 BUILD
             with col3:
                 if st.button("🚀 Build Startup", key=f"b{row['id']}"):
 
                     if st.session_state.build_count >= 3:
-                        st.warning("Free limit reached. Upgrade soon 🚀")
+                        st.warning("Free limit reached. Upgrade coming soon 🚀")
                     else:
                         st.session_state.generated_plans[row["id"]] = generate_full_startup_plan(row["problem"])
                         st.session_state.build_count += 1
@@ -150,6 +148,7 @@ def show_dashboard():
 
                 plan_raw = st.session_state.generated_plans[row["id"]]
 
+                # CLEAN JSON
                 match = re.search(r"\{.*\}", plan_raw, re.DOTALL)
                 clean = match.group() if match else plan_raw
 
@@ -164,6 +163,7 @@ def show_dashboard():
                 except:
                     parsed = None
 
+                # ---- DISPLAY ----
                 if parsed:
                     st.subheader(parsed.get("startup_name", "Startup"))
                     st.caption(parsed.get("tagline", ""))
@@ -197,7 +197,7 @@ def show_dashboard():
                     st.warning("⚠️ AI format issue — showing raw output")
                     st.code(plan_raw)
 
-                # ---- PDF ----
+                # ---- PDF DOWNLOAD ----
                 from fpdf import FPDF
 
                 pdf = FPDF()
@@ -232,6 +232,7 @@ if st.session_state.user:
 else:
     page = st.radio("Select Page", ["Login", "Register", "Reset Password"], horizontal=True)
 
+    # LOGIN
     if page == "Login":
         email = st.text_input("Email")
         password = st.text_input("Password", type="password")
@@ -255,6 +256,7 @@ else:
             else:
                 st.error("Invalid login")
 
+    # REGISTER
     elif page == "Register":
 
         st.subheader("Create Account")
@@ -285,11 +287,11 @@ else:
                     user_id = result["user"]["id"]
 
                     insert_profile(user_id, first_name, last_name)
-
                     st.success("Account created! Please login.")
                 else:
                     st.error("Registration failed")
 
+    # RESET
     elif page == "Reset Password":
         email = st.text_input("Email")
 
