@@ -116,6 +116,7 @@ def show_dashboard():
                 plan_raw = st.session_state.generated_plans[row["id"]]
 
                 try:
+                    plan_raw = plan_raw.replace("→", "->")
                     plan = json.loads(plan_raw)
 
                     st.subheader(plan["startup_name"])
