@@ -4,7 +4,7 @@ import os
 
 app = Flask(__name__)
 
-# ✅ Razorpay keys (set in Render ENV)
+# ✅ Razorpay keys (Render ENV)
 RAZORPAY_KEY = os.getenv("RAZORPAY_KEY")
 RAZORPAY_SECRET = os.getenv("RAZORPAY_SECRET")
 
@@ -35,3 +35,9 @@ def create_order():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+# ✅ IMPORTANT (Render fix)
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
