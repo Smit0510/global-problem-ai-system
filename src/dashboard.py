@@ -134,7 +134,7 @@ def show_dashboard():
                     delete_problem(row["id"], st.session_state.token)
                     st.rerun()
 
-            # 🚀 BUILD
+            # 🚀 BUILD (FIXED)
             with col3:
                 if st.button("🚀 Build Startup", key=f"b{row['id']}"):
 
@@ -153,33 +153,21 @@ def show_dashboard():
                         💰 Price: ₹299/month
                         """)
 
-                        # 💳 PAYMENT LINK
-                        st.link_button(
-                            "💳 Pay & Upgrade",
-                            "https://rzp.io/rzp/1txqxMP"
-                        )
+                        if st.button("💳 Pay Now", key=f"pay_{row['id']}"):
 
-                        # ✅ VERIFY BUTTON
-                        if st.button("✅ I have completed payment", key=f"verify_{row['id']}"):
+                            try:
+                                res = requests.post(
+                                    "https://payment-server-f778.onrender.com/create-order",
+                                    json={"user_id": st.session_state.user}
+                                )
 
-                            SUPABASE_URL = os.getenv("SUPABASE_URL")
-                            SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+                                data = res.json()
 
-                            res = requests.patch(
-                                f"{SUPABASE_URL}/rest/v1/profiles?id=eq.{st.session_state.user}",
-                                headers={
-                                    "apikey": SUPABASE_KEY,
-                                    "Authorization": f"Bearer {st.session_state.token}",
-                                    "Content-Type": "application/json"
-                                },
-                                json={"is_pro": True}
-                            )
+                                st.success("✅ Order Created!")
+                                st.json(data)
 
-                            if res.status_code in [200, 204]:
-                                st.success("🎉 You are now PRO user!")
-                                st.rerun()
-                            else:
-                                st.error("Payment verification failed")
+                            except Exception as e:
+                                st.error(f"Payment error: {e}")
 
                     else:
                         st.session_state.generated_plans[row["id"]] = generate_full_startup_plan(row["problem"])
@@ -192,7 +180,7 @@ def show_dashboard():
 
                         st.rerun()
 
-            # ---- SHOW PLAN ----
+            # ---- SHOW PLAN (FIXED POSITION) ----
             if row["id"] in st.session_state.generated_plans:
 
                 if not is_pro and build_count >= 3:
