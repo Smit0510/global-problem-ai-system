@@ -134,8 +134,25 @@ def show_dashboard():
             with col3:
                 if st.button("🚀 Build Startup", key=f"b{row['id']}"):
 
+                    # 🔥 PAYWALL
                     if st.session_state.build_count >= 3:
-                        st.warning("Free limit reached. Upgrade coming soon 🚀")
+
+                        st.error("🚫 Free limit reached")
+
+                        st.markdown("""
+                        ### 🚀 Upgrade to Pro
+
+                        Unlock:
+                        - Unlimited startup builds
+                        - Better AI quality (coming soon)
+                        - Priority features
+
+                        💰 Price: $5/month
+                        """)
+
+                        if st.button("💳 Upgrade Now", key=f"pay{row['id']}"):
+                            st.info("Stripe integration coming soon")
+
                     else:
                         st.session_state.generated_plans[row["id"]] = generate_full_startup_plan(row["problem"])
                         st.session_state.build_count += 1
@@ -148,7 +165,6 @@ def show_dashboard():
 
                 plan_raw = st.session_state.generated_plans[row["id"]]
 
-                # CLEAN JSON
                 match = re.search(r"\{.*\}", plan_raw, re.DOTALL)
                 clean = match.group() if match else plan_raw
 
@@ -163,7 +179,6 @@ def show_dashboard():
                 except:
                     parsed = None
 
-                # ---- DISPLAY ----
                 if parsed:
                     st.subheader(parsed.get("startup_name", "Startup"))
                     st.caption(parsed.get("tagline", ""))
@@ -197,7 +212,7 @@ def show_dashboard():
                     st.warning("⚠️ AI format issue — showing raw output")
                     st.code(plan_raw)
 
-                # ---- PDF DOWNLOAD ----
+                # ---- PDF ----
                 from fpdf import FPDF
 
                 pdf = FPDF()
