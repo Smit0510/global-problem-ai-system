@@ -30,7 +30,6 @@ if "name" not in st.session_state:
 if "problem_input" not in st.session_state:
     st.session_state.problem_input = ""
 
-
 # ---------------- DASHBOARD ----------------
 def show_dashboard():
 
@@ -134,41 +133,13 @@ def show_dashboard():
                     delete_problem(row["id"], st.session_state.token)
                     st.rerun()
 
-            # 🚀 BUILD (FIXED)
+            # 🚀 BUILD + PAYMENT
             with col3:
+
                 if st.button("🚀 Build Startup", key=f"b{row['id']}"):
 
                     if not is_pro and build_count >= 3:
-
                         st.error("🚫 Free limit reached")
-
-                        st.markdown("""
-                        ### 🚀 Upgrade to Pro
-
-                        Unlock:
-                        - Unlimited startup builds
-                        - Better AI quality
-                        - Priority features
-
-                        💰 Price: ₹299/month
-                        """)
-
-                        if st.button("💳 Pay Now", key=f"pay_{row['id']}"):
-
-                            try:
-                                res = requests.post(
-                                    "https://payment-server-f778.onrender.com/create-order",
-                                    json={"user_id": st.session_state.user}
-                                )
-
-                                data = res.json()
-
-                                st.success("✅ Order Created!")
-                                st.json(data)
-
-                            except Exception as e:
-                                st.error(f"Payment error: {e}")
-
                     else:
                         st.session_state.generated_plans[row["id"]] = generate_full_startup_plan(row["problem"])
 
@@ -180,7 +151,25 @@ def show_dashboard():
 
                         st.rerun()
 
-            # ---- SHOW PLAN (FIXED POSITION) ----
+                # 💳 PAYMENT BUTTON
+                if not is_pro and build_count >= 3:
+                    if st.button("💳 Pay Now", key=f"pay_{row['id']}"):
+
+                        try:
+                            res = requests.post(
+                                "https://payment-server-f778.onrender.com/create-order",
+                                json={"user_id": st.session_state.user}
+                            )
+
+                            data = res.json()
+
+                            st.success("✅ Order Created!")
+                            st.json(data)
+
+                        except Exception as e:
+                            st.error(f"Payment error: {e}")
+
+            # ---- SHOW PLAN ----
             if row["id"] in st.session_state.generated_plans:
 
                 if not is_pro and build_count >= 3:
