@@ -102,9 +102,9 @@ def insert_problem(problem, category, tags, token, user_id):
         return {"error": res.text}
 
 
-def get_problems(token):
+def get_problems(token, user_id):
     res = requests.get(
-        f"{BASE_URL}/problems",
+        f"{BASE_URL}/problems?user_id=eq.{user_id}",
         headers={
             "apikey": SUPABASE_KEY,
             "Authorization": f"Bearer {token}"
