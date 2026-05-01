@@ -10,26 +10,25 @@ from ai_generator import generate_problems, generate_full_startup_plan
 
 st.set_page_config(page_title="AI Startup Builder", layout="wide")
 
-# ---------------- SESSION ----------------
 
+# ---------------- SESSION ----------------
 if "generated_plans" not in st.session_state:
-st.session_state.generated_plans = {}
+    st.session_state.generated_plans = {}
 
 if "build_count" not in st.session_state:
-st.session_state.build_count = 0
+    st.session_state.build_count = 0
 
 if "user" not in st.session_state:
-st.session_state.user = None
+    st.session_state.user = None
 
 if "token" not in st.session_state:
-st.session_state.token = None
+    st.session_state.token = None
 
 if "name" not in st.session_state:
-st.session_state.name = "User"
+    st.session_state.name = "User"
 
 if "problem_input" not in st.session_state:
-st.session_state.problem_input = ""
-
+    st.session_state.problem_input = ""
 # ---------------- DASHBOARD ----------------
 
 def show_dashboard():
