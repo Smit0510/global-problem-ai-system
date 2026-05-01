@@ -44,7 +44,7 @@ def insert_profile(user_id, first_name, last_name):
         f"{BASE_URL}/profiles",
         headers={
             "apikey": SUPABASE_KEY,
-            "Authorization": f"Bearer {SUPABASE_KEY}",  # ✅ FIXED
+            "Authorization": f"Bearer {SUPABASE_KEY}",
             "Content-Type": "application/json"
         },
         json={
@@ -104,26 +104,19 @@ def increment_build_count(user_id, current_count):
         headers={
             "apikey": SUPABASE_KEY,
             "Authorization": f"Bearer {SUPABASE_KEY}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal"   # ✅ IMPORTANT FIX
         },
         json={"build_count": new_count}
     )
 
-    return res.json()
+    print("BUILD UPDATE STATUS:", res.status_code)
+    print("BUILD UPDATE RESPONSE:", res.text)
 
-
-def upgrade_to_pro(user_id):
-    res = requests.patch(
-        f"{BASE_URL}/profiles?id=eq.{user_id}",
-        headers={
-            "apikey": SUPABASE_KEY,
-            "Authorization": f"Bearer {SUPABASE_KEY}",
-            "Content-Type": "application/json"
-        },
-        json={"is_pro": True}
-    )
-
-    return res.json()
+    if res.status_code in [200, 204]:
+        return {"success": True}
+    else:
+        return {"error": res.text}
 
 
 # ---------------- PROBLEMS ----------------
