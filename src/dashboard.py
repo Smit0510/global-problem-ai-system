@@ -36,10 +36,16 @@ def show_dashboard():
     st.title("🚀 AI Startup Builder")
     st.caption("Find problems → build startups")
 
-    st.success(f"Welcome {st.session_state.name} 👋")
+    # 🎨 STYLE
+    st.markdown("""
+    <style>
+    button {
+        border-radius: 8px !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-    # DEBUG (remove later)
-    st.write("DEBUG USER ID:", st.session_state.user)
+    st.success(f"Welcome {st.session_state.name} 👋")
 
     # ---- ADD PROBLEM ----
     st.subheader("➕ Add Problem")
@@ -94,32 +100,44 @@ def show_dashboard():
 
     data = get_problems(st.session_state.token, st.session_state.user)
 
-    # DEBUG
-    st.write("FETCHED DATA:", data)
-
     if isinstance(data, list) and len(data) > 0:
 
         for row in data:
 
-            st.markdown(f"---\n🚧 {row['problem']}  \n👍 {row.get('votes',0)}")
+            # 🎯 CARD UI
+            st.markdown(f"""
+            <div style="
+                background-color:#111;
+                padding:20px;
+                border-radius:10px;
+                margin-bottom:10px;
+                border:1px solid #333;
+            ">
+                <h4 style="margin:0;">🚧 {row['problem']}</h4>
+                <p style="color:gray;">👍 {row.get('votes',0)} votes</p>
+            </div>
+            """, unsafe_allow_html=True)
 
             col1, col2, col3 = st.columns(3)
 
+            # 👍
             with col1:
-                if st.button("👍", key=f"v{row['id']}"):
+                if st.button("👍 Upvote", key=f"v{row['id']}"):
                     upvote_problem(row["id"], row.get("votes", 0), st.session_state.token)
                     st.rerun()
 
+            # ❌
             with col2:
-                if st.button("❌", key=f"d{row['id']}"):
+                if st.button("Delete", key=f"d{row['id']}"):
                     delete_problem(row["id"], st.session_state.token)
                     st.rerun()
 
+            # 🚀
             with col3:
-                if st.button("🚀 Build", key=f"b{row['id']}"):
+                if st.button("🚀 Build Startup", key=f"b{row['id']}"):
 
                     if st.session_state.build_count >= 3:
-                        st.warning("Free limit reached. Upgrade coming soon 🚀")
+                        st.warning("Free limit reached. Upgrade soon 🚀")
                     else:
                         st.session_state.generated_plans[row["id"]] = generate_full_startup_plan(row["problem"])
                         st.session_state.build_count += 1
