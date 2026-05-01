@@ -149,7 +149,8 @@ def insert_problem(problem, category, tags, token, user_id):
         }
     )
 
-    print("INSERT PROBLEM:", res.status_code, res.text)
+    print("INSERT PROBLEM STATUS:", res.status_code)
+    print("INSERT PROBLEM RESPONSE:", res.text)
 
     try:
         return res.json()
