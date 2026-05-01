@@ -39,13 +39,14 @@ def reset_password(email):
 
 # ---------------- PROFILE ----------------
 
-def insert_profile(user_id, first_name, last_name):
+def insert_profile(user_id, first_name, last_name, token):
     res = requests.post(
         f"{BASE_URL}/profiles",
         headers={
             "apikey": SUPABASE_KEY,
-            "Authorization": f"Bearer {SUPABASE_KEY}",
-            "Content-Type": "application/json"
+            "Authorization": f"Bearer {token}",   # ✅ FIXED
+            "Content-Type": "application/json",
+            "Prefer": "return=representation"
         },
         json={
             "id": user_id,
@@ -56,20 +57,24 @@ def insert_profile(user_id, first_name, last_name):
         }
     )
 
+    print("INSERT PROFILE:", res.status_code, res.text)
+
     try:
         return res.json()
     except:
         return {"error": res.text}
 
 
-def get_profile(user_id):
+def get_profile(user_id, token):
     res = requests.get(
         f"{BASE_URL}/profiles?id=eq.{user_id}",
         headers={
             "apikey": SUPABASE_KEY,
-            "Authorization": f"Bearer {SUPABASE_KEY}",
+            "Authorization": f"Bearer {token}"   # ✅ FIXED
         }
     )
+
+    print("GET PROFILE:", res.status_code, res.text)
 
     try:
         data = res.json()
@@ -85,25 +90,30 @@ def get_build_data(user_id, token):
         f"{BASE_URL}/profiles?id=eq.{user_id}&select=build_count,is_pro",
         headers={
             "apikey": SUPABASE_KEY,
-            "Authorization": f"Bearer {token}   # ✅ FIXED
+            "Authorization": f"Bearer {token}"
         }
     )
 
+    print("GET BUILD DATA:", res.status_code, res.text)
+
     try:
         data = res.json()
-        return data[0] if data else {"build_count": 0, "is_pro": False}
+        if isinstance(data, list) and len(data) > 0:
+            return data[0]
+        else:
+            return {"build_count": 0, "is_pro": False}
     except:
         return {"build_count": 0, "is_pro": False}
 
 
 def increment_build_count(user_id, current_count, token):
-    new_count = (current_count or 0) + 1
+    new_count = int(current_count or 0) + 1
 
     res = requests.patch(
         f"{BASE_URL}/profiles?id=eq.{user_id}",
         headers={
             "apikey": SUPABASE_KEY,
-            "Authorization": f"Bearer {token}",   # ✅ FIXED
+            "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
             "Prefer": "return=representation"
         },
@@ -139,6 +149,8 @@ def insert_problem(problem, category, tags, token, user_id):
         }
     )
 
+    print("INSERT PROBLEM:", res.status_code, res.text)
+
     try:
         return res.json()
     except:
@@ -154,6 +166,8 @@ def get_problems(token, user_id):
         }
     )
 
+    print("GET PROBLEMS:", res.status_code, res.text)
+
     try:
         return res.json()
     except:
@@ -168,6 +182,9 @@ def delete_problem(problem_id, token):
             "Authorization": f"Bearer {token}"
         }
     )
+
+    print("DELETE PROBLEM:", res.status_code)
+
     return res.status_code
 
 
@@ -179,12 +196,18 @@ def upvote_problem(problem_id, current_votes, token):
         headers={
             "apikey": SUPABASE_KEY,
             "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "Prefer": "return=representation"
         },
         json={"votes": new_votes}
     )
 
-    return res.json()
+    print("UPVOTE:", res.status_code, res.text)
+
+    try:
+        return res.json()
+    except:
+        return {"error": res.text}
 
 
 def get_trending_problems(token):
@@ -195,6 +218,8 @@ def get_trending_problems(token):
             "Authorization": f"Bearer {token}"
         }
     )
+
+    print("TRENDING:", res.status_code, res.text)
 
     try:
         return res.json()
