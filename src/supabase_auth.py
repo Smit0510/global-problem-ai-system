@@ -80,12 +80,12 @@ def get_profile(user_id):
 
 # ---------------- BUILD LIMIT ----------------
 
-def get_build_data(user_id):
+def get_build_data(user_id, token):
     res = requests.get(
         f"{BASE_URL}/profiles?id=eq.{user_id}&select=build_count,is_pro",
         headers={
             "apikey": SUPABASE_KEY,
-            "Authorization": f"Bearer {SUPABASE_KEY}"
+            "Authorization": f"Bearer {token}   # ✅ FIXED
         }
     )
 
@@ -96,16 +96,16 @@ def get_build_data(user_id):
         return {"build_count": 0, "is_pro": False}
 
 
-def increment_build_count(user_id, current_count):
+def increment_build_count(user_id, current_count, token):
     new_count = (current_count or 0) + 1
 
     res = requests.patch(
         f"{BASE_URL}/profiles?id=eq.{user_id}",
         headers={
             "apikey": SUPABASE_KEY,
-            "Authorization": f"Bearer {SUPABASE_KEY}",
+            "Authorization": f"Bearer {token}",   # ✅ FIXED
             "Content-Type": "application/json",
-            "Prefer": "return=minimal"   # ✅ IMPORTANT FIX
+            "Prefer": "return=representation"
         },
         json={"build_count": new_count}
     )
@@ -113,9 +113,9 @@ def increment_build_count(user_id, current_count):
     print("BUILD UPDATE STATUS:", res.status_code)
     print("BUILD UPDATE RESPONSE:", res.text)
 
-    if res.status_code in [200, 204]:
-        return {"success": True}
-    else:
+    try:
+        return res.json()
+    except:
         return {"error": res.text}
 
 
