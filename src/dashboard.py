@@ -109,24 +109,30 @@ def show_dashboard():
                         st.session_state.build_count += 1
                         st.rerun()
 
-            # ✅ SHOW PLAN OUTSIDE BUTTON (IMPORTANT FIX)
+            # ---------------- SHOW GENERATED PLAN ----------------
             if row["id"] in st.session_state.generated_plans:
 
-                import json
+                import json, re
+
                 plan_raw = st.session_state.generated_plans[row["id"]]
 
                 try:
-                    plan_raw = plan_raw.replace("→", "->")
-                    plan = json.loads(plan_raw)
+                    # ✅ Extract clean JSON
+                    match = re.search(r"\{.*\}", plan_raw, re.DOTALL)
+                    clean = match.group() if match else plan_raw
 
-                    st.subheader(plan["startup_name"])
-                    st.caption(plan["tagline"])
+                    clean = clean.replace("→", "->")
 
-                    st.write(plan["problem_analysis"])
-                    st.write(plan["solution"])
-                    st.write(plan["target_users"])
+                    plan = json.loads(clean)
 
-                    for f in plan["features"]:
+                    st.subheader(plan.get("startup_name", "Startup"))
+                    st.caption(plan.get("tagline", ""))
+
+                    st.write(plan.get("problem_analysis", ""))
+                    st.write(plan.get("solution", ""))
+                    st.write(plan.get("target_users", ""))
+
+                    for f in plan.get("features", []):
                         st.write(f"• {f}")
 
                     if "validation_plan" in plan:
@@ -141,18 +147,18 @@ def show_dashboard():
 
                     st.write(plan.get("revenue_plan", ""))
 
-                    for s in plan["build_steps"]:
+                    for s in plan.get("build_steps", []):
                         st.write(f"• {s}")
 
-                    st.json(plan["tech_stack"])
-                    st.write(plan["go_to_market"])
+                    st.json(plan.get("tech_stack", {}))
+                    st.write(plan.get("go_to_market", ""))
 
-                    # 📄 PDF (NOW ALWAYS WORKS)
+                    # ✅ PDF DOWNLOAD (FIXED)
                     from fpdf import FPDF
                     pdf = FPDF()
                     pdf.add_page()
                     pdf.set_font("Arial", size=12)
-                    pdf.multi_cell(0, 10, plan_raw)
+                    pdf.multi_cell(0, 10, clean)
 
                     pdf_bytes = pdf.output(dest='S').encode('latin-1')
 
