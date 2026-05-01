@@ -103,8 +103,11 @@ def insert_problem(problem, category, tags, token, user_id):
 
 
 def get_problems(token, user_id):
+
+    print("FETCH USER ID:", user_id)
+
     res = requests.get(
-        f"{BASE_URL}/problems?user_id=eq.{user_id}",
+        f"{BASE_URL}/problems",
         headers={
             "apikey": SUPABASE_KEY,
             "Authorization": f"Bearer {token}"
@@ -112,7 +115,12 @@ def get_problems(token, user_id):
     )
 
     try:
-        return res.json()
+        data = res.json()
+        print("ALL DATA:", data)
+
+        # 🔥 MANUAL FILTER (NO SUPABASE FILTER ISSUE)
+        return [row for row in data if str(row.get("user_id")) == str(user_id)]
+
     except:
         return []
 
