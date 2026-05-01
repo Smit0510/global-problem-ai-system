@@ -36,6 +36,17 @@ def show_dashboard():
 
     st.success(f"Welcome {st.session_state.name} 👋")
 
+    # ✅ GET BUILD DATA ONCE
+    user_data = get_build_data(
+        st.session_state.user,
+        st.session_state.token
+    )
+
+    build_count = user_data.get("build_count", 0)
+    is_pro = user_data.get("is_pro", False)
+
+    st.info(f"🧠 Builds used: {build_count}/3")
+
     # ---- ADD PROBLEM ----
     st.subheader("➕ Add Problem")
 
@@ -108,13 +119,13 @@ def show_dashboard():
 
             col1, col2, col3 = st.columns(3)
 
-            # 👍
+            # 👍 UPVOTE
             with col1:
                 if st.button("👍 Upvote", key=f"v{row['id']}"):
                     upvote_problem(row["id"], row.get("votes", 0), st.session_state.token)
                     st.rerun()
 
-            # ❌
+            # ❌ DELETE
             with col2:
                 if st.button("❌ Delete", key=f"d{row['id']}"):
                     delete_problem(row["id"], st.session_state.token)
@@ -123,15 +134,6 @@ def show_dashboard():
             # 🚀 BUILD
             with col3:
                 if st.button("🚀 Build Startup", key=f"b{row['id']}"):
-
-                    user_data = get_build_data(
-                        st.session_state.user,
-                        st.session_state.token
-                    )
-                    st.write("DEBUG BUILD DATA:", user_data)
-
-                    build_count = user_data.get("build_count", 0)
-                    is_pro = user_data.get("is_pro", False)
 
                     if not is_pro and build_count >= 3:
 
@@ -149,8 +151,10 @@ def show_dashboard():
                         """)
 
                     else:
+                        # GENERATE
                         st.session_state.generated_plans[row["id"]] = generate_full_startup_plan(row["problem"])
 
+                        # UPDATE COUNT
                         increment_build_count(
                             st.session_state.user,
                             build_count,
@@ -161,6 +165,11 @@ def show_dashboard():
 
             # ---- SHOW PLAN ----
             if row["id"] in st.session_state.generated_plans:
+
+                # 🚫 BLOCK VIEW ALSO
+                if not is_pro and build_count >= 3:
+                    st.warning("🔒 Upgrade to view this startup plan")
+                    continue
 
                 import json, re
 
@@ -191,44 +200,11 @@ def show_dashboard():
                     for f in parsed.get("features", []):
                         st.write(f"• {f}")
 
-                    if "validation_plan" in parsed:
-                        st.subheader("Validation Plan")
-                        for v in parsed["validation_plan"]:
-                            st.write(f"• {v}")
-
-                    if "first_users_plan" in parsed:
-                        st.subheader("First Users Plan")
-                        for u in parsed["first_users_plan"]:
-                            st.write(f"• {u}")
-
                     st.write(parsed.get("revenue_plan", ""))
-
-                    for s in parsed.get("build_steps", []):
-                        st.write(f"• {s}")
-
-                    st.json(parsed.get("tech_stack", {}))
-                    st.write(parsed.get("go_to_market", ""))
 
                 else:
                     st.warning("⚠️ AI format issue — showing raw output")
                     st.code(plan_raw)
-
-                # ---- PDF ----
-                from fpdf import FPDF
-
-                pdf = FPDF()
-                pdf.add_page()
-                pdf.set_font("Arial", size=12)
-                pdf.multi_cell(0, 10, safe_clean)
-
-                pdf_bytes = pdf.output(dest='S').encode('latin-1')
-
-                st.download_button(
-                    "📄 Download PDF",
-                    data=pdf_bytes,
-                    file_name=f"startup_{row['id']}.pdf",
-                    mime="application/pdf"
-                )
 
     else:
         st.info("No problems found for this user")
@@ -261,7 +237,6 @@ else:
                 st.session_state.user = user_id
                 st.session_state.token = result["access_token"]
 
-                # ✅ FIXED HERE
                 profile = get_profile(user_id, st.session_state.token)
 
                 if profile:
@@ -290,29 +265,21 @@ else:
 
         if st.button("Register"):
 
-            if not first_name or not last_name:
-                st.error("Enter full name")
+            result = sign_up(email, password)
 
-            elif not email or not password:
-                st.error("Email & password required")
+            if "user" in result:
+                user_id = result["user"]["id"]
 
+                insert_profile(
+                    user_id,
+                    first_name,
+                    last_name,
+                    result.get("access_token", "")
+                )
+
+                st.success("Account created! Please login.")
             else:
-                result = sign_up(email, password)
-
-                if "user" in result:
-                    user_id = result["user"]["id"]
-
-                    # ✅ FIXED HERE
-                    insert_profile(
-                        user_id,
-                        first_name,
-                        last_name,
-                        result["access_token"] if "access_token" in result else ""
-                    )
-
-                    st.success("Account created! Please login.")
-                else:
-                    st.error("Registration failed")
+                st.error("Registration failed")
 
     elif page == "Reset Password":
         email = st.text_input("Email")
