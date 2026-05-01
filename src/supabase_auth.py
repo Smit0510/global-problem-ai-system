@@ -39,7 +39,7 @@ def reset_password(email):
 
 # ---------------- DATABASE ----------------
 
-def insert_problem(problem, category, tags, token, user_email):
+def insert_problem(problem, category, tags, token, user_id):
     import requests
 
     res = requests.post(
@@ -54,7 +54,8 @@ def insert_problem(problem, category, tags, token, user_email):
             "problem": problem,
             "category": category,
             "tags": tags,
-            "user_email": user_email
+            "votes": 0,
+            "user_id": user_id   # ✅ correct
         }
     )
 
@@ -62,6 +63,7 @@ def insert_problem(problem, category, tags, token, user_email):
         return res.json()
     except:
         return {"error": res.text}
+
 
 
 def get_problems(token):
