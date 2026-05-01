@@ -1,4 +1,7 @@
 import streamlit as st
+import requests
+import os
+
 from supabase_auth import (
     sign_up, sign_in, reset_password,
     insert_problem, get_problems, delete_problem,
@@ -27,6 +30,7 @@ if "name" not in st.session_state:
 if "problem_input" not in st.session_state:
     st.session_state.problem_input = ""
 
+
 # ---------------- DASHBOARD ----------------
 def show_dashboard():
 
@@ -35,7 +39,7 @@ def show_dashboard():
 
     st.success(f"Welcome {st.session_state.name} 👋")
 
-    # ✅ BUILD DATA (ONLY ONCE)
+    # ✅ BUILD DATA
     user_data = get_build_data(
         st.session_state.user,
         st.session_state.token
@@ -130,7 +134,7 @@ def show_dashboard():
                     delete_problem(row["id"], st.session_state.token)
                     st.rerun()
 
-            # 🚀 BUILD STARTUP
+            # 🚀 BUILD
             with col3:
                 if st.button("🚀 Build Startup", key=f"b{row['id']}"):
 
@@ -149,17 +153,37 @@ def show_dashboard():
                         💰 Price: ₹299/month
                         """)
 
-                        # 💳 PAYMENT BUTTON
+                        # 💳 PAYMENT LINK
                         st.link_button(
                             "💳 Pay & Upgrade",
                             "https://rzp.io/rzp/1txqxMP"
                         )
 
+                        # ✅ VERIFY BUTTON
+                        if st.button("✅ I have completed payment", key=f"verify_{row['id']}"):
+
+                            SUPABASE_URL = os.getenv("SUPABASE_URL")
+                            SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+
+                            res = requests.patch(
+                                f"{SUPABASE_URL}/rest/v1/profiles?id=eq.{st.session_state.user}",
+                                headers={
+                                    "apikey": SUPABASE_KEY,
+                                    "Authorization": f"Bearer {st.session_state.token}",
+                                    "Content-Type": "application/json"
+                                },
+                                json={"is_pro": True}
+                            )
+
+                            if res.status_code in [200, 204]:
+                                st.success("🎉 You are now PRO user!")
+                                st.rerun()
+                            else:
+                                st.error("Payment verification failed")
+
                     else:
-                        # ✅ GENERATE PLAN
                         st.session_state.generated_plans[row["id"]] = generate_full_startup_plan(row["problem"])
 
-                        # ✅ UPDATE COUNT
                         increment_build_count(
                             st.session_state.user,
                             build_count,
@@ -184,7 +208,6 @@ def show_dashboard():
 
                 clean = clean.replace("→", "->")
                 clean = clean.replace("₹", "Rs")
-                clean = clean.replace("’", "'")
 
                 safe_clean = clean.encode("ascii", "ignore").decode()
 
@@ -207,7 +230,6 @@ def show_dashboard():
                     st.write(parsed.get("revenue_plan", ""))
 
                 else:
-                    st.warning("⚠️ AI format issue — showing raw output")
                     st.code(plan_raw)
 
     else:
@@ -219,6 +241,7 @@ def show_dashboard():
         st.session_state.token = None
         st.session_state.name = "User"
         st.rerun()
+
 
 # ---------------- AUTH ----------------
 if st.session_state.user:
@@ -240,7 +263,6 @@ else:
                 st.session_state.user = user_id
                 st.session_state.token = result["access_token"]
 
-                # AUTO CREATE PROFILE
                 profile = get_profile(user_id, st.session_state.token)
 
                 if not profile:
@@ -259,14 +281,6 @@ else:
     elif page == "Register":
 
         st.subheader("Create Account")
-
-        col1, col2 = st.columns(2)
-
-        with col1:
-            first_name = st.text_input("First Name")
-
-        with col2:
-            last_name = st.text_input("Last Name")
 
         email = st.text_input("Email")
         password = st.text_input("Password", type="password")
