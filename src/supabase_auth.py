@@ -107,7 +107,9 @@ def get_build_data(user_id, token):
 
 
 def increment_build_count(user_id, current_count, token):
-    new_count = int(current_count or 0) + 1
+    # ✅ ALWAYS fetch latest count (avoid stale value)
+    latest = get_build_data(user_id, token)
+    new_count = int(latest.get("build_count", 0)) + 1
 
     res = requests.patch(
         f"{BASE_URL}/profiles?id=eq.{user_id}",
@@ -120,8 +122,8 @@ def increment_build_count(user_id, current_count, token):
         json={"build_count": new_count}
     )
 
-    print("BUILD UPDATE STATUS:", res.status_code)
-    print("BUILD UPDATE RESPONSE:", res.text)
+    print("BUILD COUNT UPDATED TO:", new_count)
+    print("RESPONSE:", res.text)
 
     try:
         return res.json()
