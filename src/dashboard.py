@@ -134,7 +134,6 @@ def show_dashboard():
             with col3:
                 if st.button("🚀 Build Startup", key=f"b{row['id']}"):
 
-                    # 🔥 PAYWALL
                     if st.session_state.build_count >= 3:
 
                         st.error("🚫 Free limit reached")
@@ -158,8 +157,10 @@ def show_dashboard():
                         st.session_state.build_count += 1
                         st.rerun()
 
-            # ---- SHOW PLAN ----
-            if row["id"] in st.session_state.generated_plans:
+            # 🚫 BLOCK PLAN IF PAYWALL ACTIVE
+            is_locked = st.session_state.build_count >= 3
+
+            if not is_locked and row["id"] in st.session_state.generated_plans:
 
                 import json, re
 
@@ -247,7 +248,6 @@ if st.session_state.user:
 else:
     page = st.radio("Select Page", ["Login", "Register", "Reset Password"], horizontal=True)
 
-    # LOGIN
     if page == "Login":
         email = st.text_input("Email")
         password = st.text_input("Password", type="password")
@@ -271,7 +271,6 @@ else:
             else:
                 st.error("Invalid login")
 
-    # REGISTER
     elif page == "Register":
 
         st.subheader("Create Account")
@@ -306,7 +305,6 @@ else:
                 else:
                     st.error("Registration failed")
 
-    # RESET
     elif page == "Reset Password":
         email = st.text_input("Email")
 
