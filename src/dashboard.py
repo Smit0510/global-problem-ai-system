@@ -27,7 +27,6 @@ if "name" not in st.session_state:
 if "problem_input" not in st.session_state:
     st.session_state.problem_input = ""
 
-
 # ---------------- DASHBOARD ----------------
 def show_dashboard():
 
@@ -36,7 +35,7 @@ def show_dashboard():
 
     st.success(f"Welcome {st.session_state.name} 👋")
 
-    # ✅ GET BUILD DATA
+    # ✅ BUILD DATA (ONLY ONCE)
     user_data = get_build_data(
         st.session_state.user,
         st.session_state.token
@@ -93,7 +92,7 @@ def show_dashboard():
 
     if isinstance(trending, list):
         for row in trending[:5]:
-            st.markdown(f"🏆 {row['problem']}  \n👍 {row.get('votes',0)}")
+            st.markdown(f"🏆 {row['problem']}  \n👍 {row.get('votes', 0)}")
 
     # ---- USER PROBLEMS ----
     st.subheader("📋 Your Problems")
@@ -113,25 +112,25 @@ def show_dashboard():
                 background-color:#fafafa;
             ">
                 <b>🚧 {row['problem']}</b><br>
-                👍 {row.get('votes',0)} votes
+                👍 {row.get('votes', 0)} votes
             </div>
             """, unsafe_allow_html=True)
 
             col1, col2, col3 = st.columns(3)
 
-            # 👍
+            # 👍 UPVOTE
             with col1:
                 if st.button("👍 Upvote", key=f"v{row['id']}"):
                     upvote_problem(row["id"], row.get("votes", 0), st.session_state.token)
                     st.rerun()
 
-            # ❌
+            # ❌ DELETE
             with col2:
                 if st.button("❌ Delete", key=f"d{row['id']}"):
                     delete_problem(row["id"], st.session_state.token)
                     st.rerun()
 
-            # 🚀 BUILD
+            # 🚀 BUILD STARTUP
             with col3:
                 if st.button("🚀 Build Startup", key=f"b{row['id']}"):
 
@@ -147,12 +146,20 @@ def show_dashboard():
                         - Better AI quality
                         - Priority features
 
-                        💰 Price: $5/month
+                        💰 Price: ₹299/month
                         """)
 
+                        # 💳 PAYMENT BUTTON
+                        st.link_button(
+                            "💳 Pay & Upgrade",
+                            "https://rzp.io/rzp/1txqxMP"
+                        )
+
                     else:
+                        # ✅ GENERATE PLAN
                         st.session_state.generated_plans[row["id"]] = generate_full_startup_plan(row["problem"])
 
+                        # ✅ UPDATE COUNT
                         increment_build_count(
                             st.session_state.user,
                             build_count,
@@ -213,7 +220,6 @@ def show_dashboard():
         st.session_state.name = "User"
         st.rerun()
 
-
 # ---------------- AUTH ----------------
 if st.session_state.user:
     show_dashboard()
@@ -234,19 +240,13 @@ else:
                 st.session_state.user = user_id
                 st.session_state.token = result["access_token"]
 
-                # 🔥 AUTO CREATE PROFILE IF NOT EXISTS
+                # AUTO CREATE PROFILE
                 profile = get_profile(user_id, st.session_state.token)
 
                 if not profile:
-                    insert_profile(
-                        user_id,
-                        "User",
-                        "",
-                        st.session_state.token
-                    )
+                    insert_profile(user_id, "User", "", st.session_state.token)
                     profile = get_profile(user_id, st.session_state.token)
 
-                # ✅ SET NAME
                 if profile:
                     st.session_state.name = f"{profile['first_name']} {profile['last_name']}"
                 else:
@@ -272,7 +272,6 @@ else:
         password = st.text_input("Password", type="password")
 
         if st.button("Register"):
-
             result = sign_up(email, password)
 
             if "user" in result:
