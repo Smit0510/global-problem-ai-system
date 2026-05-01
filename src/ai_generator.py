@@ -33,12 +33,22 @@ def generate_problems(topic="startup problems"):
 
 # ---------------- CLEAN JSON ----------------
 def clean_json(text):
+    import re
+
     try:
-        text = re.sub(r"```json|```", "", text).strip()
+        # remove code blocks
+        text = re.sub(r"```json|```", "", text)
+
+        # replace bad characters
+        text = text.replace("→", "->")
+
+        # extract only JSON
         match = re.search(r"\{.*\}", text, re.DOTALL)
         if match:
             return match.group()
-        return text
+
+        return text.strip()
+
     except:
         return text
 
@@ -55,7 +65,9 @@ Problem:
 {problem}
 
 STRICT RULES:
-- Output ONLY valid JSON
+- Output STRICT valid JSON
+- Do NOT use symbols like → or emojis
+- Use only plain text
 - No extra text
 - No generic startup buzzwords
 - Be specific (platforms, actions, numbers)
