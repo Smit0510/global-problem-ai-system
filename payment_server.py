@@ -20,7 +20,7 @@ def home():
 @app.route("/create-order", methods=["POST"])
 def create_order():
     try:
-        data = request.json
+        data = request.get_json(force=True)
         user_id = data.get("user_id")
 
         order = client.order.create({
