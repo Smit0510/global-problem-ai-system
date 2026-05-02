@@ -1,12 +1,22 @@
 import os
 import re
-from openai import OpenAI
+import json
+import random
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# OPTIONAL OpenAI (will auto-disable if no key)
+try:
+    from openai import OpenAI
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+except:
+    client = None
+
 
 # ---------------- PROBLEMS ----------------
 def generate_problems(topic="startup problems"):
     try:
+        if not client:
+            raise Exception("No API")
+
         prompt = f"""
         Generate 5 real-world startup problems.
         Topic: {topic}
@@ -33,98 +43,129 @@ def generate_problems(topic="startup problems"):
 
 # ---------------- CLEAN JSON ----------------
 def clean_json(text):
-    import re
-
     try:
-        # remove code blocks
         text = re.sub(r"```json|```", "", text)
-
-        # replace bad characters
         text = text.replace("→", "->")
 
-        # extract only JSON
         match = re.search(r"\{.*\}", text, re.DOTALL)
         if match:
             return match.group()
 
         return text.strip()
-
     except:
         return text
 
 
+# ---------------- FALLBACK GENERATOR ----------------
+def fallback_plan(problem):
+    problem_lower = problem.lower()
+
+    name = "StartupX"
+    if "study" in problem_lower:
+        name = "FocusFlow"
+    elif "money" in problem_lower:
+        name = "SaveSmart"
+    elif "fitness" in problem_lower:
+        name = "FitTrack"
+    elif "task" in problem_lower:
+        name = "TaskMate"
+
+    score = round(random.uniform(6.5, 9.5), 1)
+
+    data = {
+        "startup_name": name,
+        "tagline": f"Solving: {problem}",
+
+        "startup_score": score,
+        "market_size": "Large (Global opportunity)",
+        "demand_level": random.choice(["High", "Very High", "Growing"]),
+        "competition_level": random.choice(["Low", "Medium", "High"]),
+
+        "validation_tags": [
+            "High Demand",
+            "Scalable",
+            "Monetizable"
+        ],
+
+        "problem_analysis": f"{problem} is a real-world issue affecting many users.",
+        "solution": "A simple and focused product solving this problem efficiently.",
+        "target_users": "People facing this specific problem",
+
+        "features": [
+            "Core feature solving main problem",
+            "Simple tracking system",
+            "Clean user dashboard"
+        ],
+
+        "validation_plan": [
+            "Post in Reddit communities",
+            "Talk to 10 real users",
+            "Ask if they would pay"
+        ],
+
+        "mvp_scope": [
+            "Build only 1 core feature",
+            "No complex UI",
+            "No extra features"
+        ],
+
+        "first_users_plan": [
+            "Share in WhatsApp/Telegram groups",
+            "Post in niche communities",
+            "Reach out manually"
+        ],
+
+        "revenue_plan": "Earn first ₹1000 via subscription",
+
+        "build_steps": [
+            "Validate problem",
+            "Build MVP",
+            "Launch product",
+            "Get first users"
+        ],
+
+        "tech_stack": {
+            "frontend": "React",
+            "backend": "FastAPI",
+            "database": "PostgreSQL",
+            "deployment": "Render"
+        },
+
+        "go_to_market": "Start with communities and direct outreach"
+    }
+
+    return json.dumps(data)
+
+
 # ---------------- FULL STARTUP PLAN ----------------
 def generate_full_startup_plan(problem):
-    try:
-        prompt = f"""
-You are a startup founder who has built and launched real startups.
 
-Your job is to create a PRACTICAL execution plan — not theory.
+    try:
+        if not client:
+            raise Exception("No API")
+
+        prompt = f"""
+You are a startup expert.
+
+Return STRICT JSON.
 
 Problem:
 {problem}
 
-STRICT RULES:
-- Output STRICT valid JSON
-- Do NOT use symbols like → or emojis
-- Use only plain text
-- No extra text
-- No generic startup buzzwords
-- Be specific (platforms, actions, numbers)
-- Focus on getting FIRST 10 USERS
-
 FORMAT:
-
 {{
   "startup_name": "",
   "tagline": "",
-
-  "problem_analysis": "Explain why this problem actually matters in real life",
-
-  "solution": "Explain exactly what the product does in simple terms",
-
-  "target_users": "Be very specific (example: college students preparing for exams)",
-
-  "features": [
-    "Real feature with purpose",
-    "Another practical feature"
-  ],
-
-  "validation_plan": [
-    "Post in specific communities (example: Reddit r/startups)",
-    "Talk to 10 real users",
-    "Ask if they will pay"
-  ],
-
-  "mvp_scope": [
-    "Build only core feature",
-    "Do NOT build extra features",
-    "Simple UI only"
-  ],
-
-  "first_users_plan": [
-    "Where to find users (Reddit, WhatsApp, Discord)",
-    "How to message them directly",
-    "Offer free beta access"
-  ],
-
-  "revenue_plan": "Explain how to earn first ₹1000",
-
-  "build_steps": [
-    "Step 1: Validate problem",
-    "Step 2: Build MVP",
-    "Step 3: Launch",
-    "Step 4: Get first users"
-  ],
-
-  "tech_stack": {{
-    "frontend": "",
-    "backend": "",
-    "database": "",
-    "deployment": ""
-  }},
-
-  "go_to_market": "Step-by-step launch strategy"
+  "startup_score": 0,
+  "problem_analysis": "",
+  "solution": "",
+  "target_users": "",
+  "market_size": "",
+  "competition_level": "",
+  "demand_level": "",
+  "monetization": "",
+  "features": [],
+  "validation_tags": []
 }}
 """
 
@@ -137,68 +178,5 @@ FORMAT:
         raw = res.choices[0].message.content
         return clean_json(raw)
 
-    except Exception:
-        # 🔥 STRONG FALLBACK (NO API NEEDED)
-        problem_lower = problem.lower()
-
-        name = "StartupX"
-        if "study" in problem_lower:
-            name = "FocusFlow"
-        elif "money" in problem_lower:
-            name = "SaveSmart"
-        elif "fitness" in problem_lower:
-            name = "FitTrack"
-        elif "task" in problem_lower:
-            name = "TaskMate"
-
-        return f"""{{
-  "startup_name": "{name}",
-  "tagline": "Solving: {problem}",
-  "problem_analysis": "{problem} is a real problem people face in daily life.",
-  "solution": "A focused product that directly solves this problem with simple UX.",
-  "target_users": "People facing this specific problem",
-
-  "features": [
-    "Core feature solving main problem",
-    "Simple tracking system",
-    "User dashboard"
-  ],
-
-  "validation_plan": [
-    "Post about this problem in Reddit communities",
-    "Talk to 10 real users facing this issue",
-    "Ask if they would pay for solution"
-  ],
-
-  "mvp_scope": [
-    "Build only 1 core feature",
-    "No complex UI",
-    "No extra features"
-  ],
-
-  "first_users_plan": [
-    "Share in WhatsApp/Telegram groups",
-    "Post in niche Reddit communities",
-    "Reach out to 20 people manually"
-  ],
-
-  "revenue_plan": "Charge ₹199/month after getting first users",
-
-  "monetization": "Freemium → subscription",
-
-  "build_steps": [
-    "Validate problem",
-    "Build MVP",
-    "Launch simple landing page",
-    "Get first 10 users"
-  ],
-
-  "tech_stack": {{
-    "frontend": "React",
-    "backend": "FastAPI",
-    "database": "PostgreSQL",
-    "deployment": "Render"
-  }},
-
-  "go_to_market": "Start with communities + direct outreach"
-}}"""
+    except:
+        return fallback_plan(problem)
