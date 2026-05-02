@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 import streamlit.components.v1 as components
-import json, re
+import json, re, time
 
 from supabase_auth import (
     sign_up, sign_in, reset_password,
@@ -63,51 +63,80 @@ def show_dashboard():
         st.title("🚀 AI Startup Builder")
         st.caption("Turn problems into validated startups")
 
+    # 💎 PAYMENT BUTTON (FIXED)
     with top2:
         if st.button("💎 Upgrade to Pro"):
+
             try:
+                # 🔥 Wake server (Render fix)
+                requests.get("https://payment-server-f778.onrender.com/")
+                time.sleep(1)
+
                 res = requests.post(
                     "https://payment-server-f778.onrender.com/create-order",
-                    json={"user_id": st.session_state.user}
+                    json={"user_id": st.session_state.user},
+                    timeout=10
                 )
-                data = res.json()
+
+                if res.status_code != 200:
+                    st.error(f"Server error: {res.status_code}")
+                    st.text(res.text)
+                    return
+
+                try:
+                    data = res.json()
+                except:
+                    st.error("❌ Invalid response from server")
+                    st.text(res.text)
+                    return
+
                 order_id = data.get("order_id")
 
-                if order_id:
-                    checkout = f"""
-                    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-                    <script>
-                    var options = {{
-                        "key": "rzp_live_Sk3uDNJeDvuR3s",
-                        "amount": "29900",
-                        "currency": "INR",
-                        "name": "AI Startup Builder",
-                        "description": "Upgrade to Pro",
-                        "order_id": "{order_id}",
-                        "handler": function (response){{
-                            fetch("https://payment-server-f778.onrender.com/verify-payment", {{
-                                method: "POST",
-                                headers: {{ "Content-Type": "application/json" }},
-                                body: JSON.stringify({{
-                                    razorpay_payment_id: response.razorpay_payment_id,
-                                    razorpay_order_id: response.razorpay_order_id,
-                                    razorpay_signature: response.razorpay_signature,
-                                    user_id: "{st.session_state.user}"
-                                }})
+                if not order_id:
+                    st.error("❌ Order ID missing")
+                    st.json(data)
+                    return
+
+                st.success("✅ Order Created!")
+
+                checkout = f"""
+                <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+                <script>
+                var options = {{
+                    "key": "rzp_live_Sk3uDNJeDvuR3s",
+                    "amount": "29900",
+                    "currency": "INR",
+                    "name": "AI Startup Builder",
+                    "description": "Upgrade to Pro",
+                    "order_id": "{order_id}",
+                    "handler": function (response){{
+                        fetch("https://payment-server-f778.onrender.com/verify-payment", {{
+                            method: "POST",
+                            headers: {{ "Content-Type": "application/json" }},
+                            body: JSON.stringify({{
+                                razorpay_payment_id: response.razorpay_payment_id,
+                                razorpay_order_id: response.razorpay_order_id,
+                                razorpay_signature: response.razorpay_signature,
+                                user_id: "{st.session_state.user}"
                             }})
-                            .then(() => {{
-                                alert("✅ PRO Activated!");
-                                window.location.reload();
-                            }});
-                        }}
-                    }};
-                    new Razorpay(options).open();
-                    </script>
-                    """
-                    components.html(checkout, height=400)
+                        }})
+                        .then(() => {{
+                            alert("✅ PRO Activated!");
+                            window.location.reload();
+                        }})
+                        .catch(() => {{
+                            alert("Payment done but verification failed");
+                        }});
+                    }}
+                }};
+                new Razorpay(options).open();
+                </script>
+                """
+
+                components.html(checkout, height=400)
 
             except Exception as e:
-                st.error(e)
+                st.error(f"Payment error: {e}")
 
     # USER DATA
     user_data = get_build_data(st.session_state.user, st.session_state.token)
@@ -127,7 +156,7 @@ def show_dashboard():
             insert_problem(problem, "Other", "", st.session_state.token, st.session_state.user)
             st.rerun()
 
-    # LIST PROBLEMS
+    # PROBLEMS LIST
     problems = get_problems(st.session_state.token, st.session_state.user) or []
 
     for row in problems:
@@ -137,19 +166,16 @@ def show_dashboard():
 
         col1, col2, col3 = st.columns(3)
 
-        # 👍
         with col1:
             if st.button("👍", key=f"vote_{row['id']}"):
                 upvote_problem(row["id"], row.get("votes", 0), st.session_state.token)
                 st.rerun()
 
-        # ❌
         with col2:
             if st.button("🗑 Delete", key=f"del_{row['id']}"):
                 delete_problem(row["id"], st.session_state.token)
                 st.rerun()
 
-        # 🚀 BUILD
         with col3:
             if st.button("🚀 Build", key=f"build_{row['id']}"):
 
@@ -198,7 +224,6 @@ def show_dashboard():
                 for f in data.get("features", []):
                     st.write(f"• {f}")
 
-                # PDF
                 pdf = generate_pdf(raw)
 
                 st.download_button(
@@ -211,7 +236,6 @@ def show_dashboard():
             else:
                 st.code(raw)
 
-    # LOGOUT
     if st.button("Logout"):
         st.session_state.user = None
         st.session_state.token = None
