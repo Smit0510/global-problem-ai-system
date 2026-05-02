@@ -34,21 +34,20 @@ def show_dashboard():
     st.title("🚀 AI Startup Builder")
     st.success(f"Welcome {st.session_state.name} 👋")
 
-    # BUILD DATA
     user_data = get_build_data(st.session_state.user, st.session_state.token)
     build_count = user_data.get("build_count", 0)
     is_pro = user_data.get("is_pro", False)
 
     st.info(f"🧠 Builds used: {build_count}/3")
 
-    # ---------------- ADD PROBLEM ----------------
+    # ADD PROBLEM
     problem = st.text_input("Enter problem")
 
     if st.button("Save Problem"):
         insert_problem(problem, "Other", "", st.session_state.token, st.session_state.user)
         st.rerun()
 
-    # ---------------- USER PROBLEMS ----------------
+    # USER PROBLEMS
     data = get_problems(st.session_state.token, st.session_state.user)
 
     if isinstance(data, list):
@@ -60,19 +59,16 @@ def show_dashboard():
 
             col1, col2, col3 = st.columns(3)
 
-            # 👍
             with col1:
                 if st.button("👍", key=f"v{row['id']}"):
                     upvote_problem(row["id"], row.get("votes", 0), st.session_state.token)
                     st.rerun()
 
-            # ❌
             with col2:
                 if st.button("❌", key=f"d{row['id']}"):
                     delete_problem(row["id"], st.session_state.token)
                     st.rerun()
 
-            # 🚀 BUILD + PAYMENT
             with col3:
 
                 # BUILD
@@ -103,7 +99,6 @@ def show_dashboard():
                             )
 
                             data = res.json()
-
                             order_id = data.get("order_id")
 
                             if not order_id:
@@ -113,7 +108,7 @@ def show_dashboard():
 
                             st.success("✅ Order Created!")
 
-                            # 🔥 Razorpay popup
+                            # 🔥 Razorpay Checkout
                             checkout_html = f"""
                             <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
                             <script>
@@ -125,21 +120,39 @@ def show_dashboard():
                                 "description": "Upgrade to Pro",
                                 "order_id": "{order_id}",
                                 "handler": function (response){{
-                                    alert("Payment Successful!");
+                                    fetch("https://payment-server-f778.onrender.com/verify-payment", {{
+                                        method: "POST",
+                                        headers: {{
+                                            "Content-Type": "application/json"
+                                        }},
+                                        body: JSON.stringify({{
+                                            razorpay_payment_id: response.razorpay_payment_id,
+                                            razorpay_order_id: response.razorpay_order_id,
+                                            razorpay_signature: response.razorpay_signature,
+                                            user_id: "{st.session_state.user}"
+                                        }})
+                                    }})
+                                    .then(res => res.json())
+                                    .then(data => {{
+                                        alert("✅ Payment Successful & PRO Activated!");
+                                        window.location.reload();
+                                    }})
+                                    .catch(err => {{
+                                        alert("Payment success but verification failed");
+                                    }});
                                 }}
                             }};
                             var rzp = new Razorpay(options);
                             rzp.open();
                             </script>
                             """
-                            st.write("Opening payment popup...")
 
                             components.html(checkout_html, height=500)
-                            
+
                         except Exception as e:
                             st.error(f"Payment error: {e}")
 
-            # ---------------- SHOW PLAN ----------------
+            # SHOW PLAN
             if row["id"] in st.session_state.generated_plans:
 
                 if not is_pro and build_count >= 3:
