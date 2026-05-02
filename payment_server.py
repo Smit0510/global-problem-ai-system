@@ -1,9 +1,10 @@
 from flask import Flask, request, jsonify
 import razorpay
 import os
+from flask_cors import CORS
 
 app = Flask(__name__)
-
+CORS(app)
 # ✅ Razorpay keys (Render ENV)
 RAZORPAY_KEY = os.getenv("RAZORPAY_KEY")
 RAZORPAY_SECRET = os.getenv("RAZORPAY_SECRET")
