@@ -87,7 +87,10 @@ def show_dashboard():
                         st.rerun()
 
                 # PAYMENT
-                if not is_pro and build_count >= 3:
+                if is_pro:
+                    st.success("🚀 PRO User — Unlimited Builds")
+                else:
+                    st.info(f"🧠 Builds used: {build_count}/3")
 
                     if st.button("💳 Pay Now", key=f"pay_{row['id']}"):
 
