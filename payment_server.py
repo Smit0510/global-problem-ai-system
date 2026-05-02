@@ -26,7 +26,7 @@ def home():
 def create_order():
     try:
         order = client.order.create({
-            "amount": 29900,
+            "amount": 100,
             "currency": "INR",
             "payment_capture": 1
         })
