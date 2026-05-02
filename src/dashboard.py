@@ -3,14 +3,14 @@ import requests
 import streamlit.components.v1 as components
 
 from supabase_auth import (
-    sign_up, sign_in, reset_password,
+    sign_up, sign_in,
     insert_problem, get_problems, delete_problem,
-    upvote_problem, get_trending_problems,
+    upvote_problem,
     insert_profile, get_profile,
     get_build_data, increment_build_count
 )
 
-from ai_generator import generate_problems, generate_full_startup_plan
+from ai_generator import generate_full_startup_plan
 
 st.set_page_config(page_title="AI Startup Builder", layout="wide")
 
@@ -27,71 +27,36 @@ if "token" not in st.session_state:
 if "name" not in st.session_state:
     st.session_state.name = "User"
 
-if "problem_input" not in st.session_state:
-    st.session_state.problem_input = ""
-
 
 # ---------------- DASHBOARD ----------------
 def show_dashboard():
 
     st.title("🚀 AI Startup Builder")
-    st.caption("Find problems → build startups")
-
     st.success(f"Welcome {st.session_state.name} 👋")
 
-    # ✅ BUILD DATA
-    user_data = get_build_data(
-        st.session_state.user,
-        st.session_state.token
-    )
-
+    # BUILD DATA
+    user_data = get_build_data(st.session_state.user, st.session_state.token)
     build_count = user_data.get("build_count", 0)
     is_pro = user_data.get("is_pro", False)
 
     st.info(f"🧠 Builds used: {build_count}/3")
 
-    # ---- ADD PROBLEM ----
-    st.subheader("➕ Add Problem")
-
-    problem = st.text_input(
-        "Enter a real-world problem",
-        value=st.session_state.problem_input
-    )
+    # ---------------- ADD PROBLEM ----------------
+    problem = st.text_input("Enter problem")
 
     if st.button("Save Problem"):
-        if not st.session_state.user:
-            st.error("User not logged in properly")
-            return
+        insert_problem(problem, "Other", "", st.session_state.token, st.session_state.user)
+        st.rerun()
 
-        if problem and len(problem.strip()) > 5:
-            insert_problem(
-                problem,
-                "Other",
-                "",
-                st.session_state.token,
-                st.session_state.user
-            )
-            st.success("Saved!")
-            st.session_state.problem_input = ""
-            st.rerun()
-        else:
-            st.error("Enter valid problem")
-
-    # ---- USER PROBLEMS ----
-    st.subheader("📋 Your Problems")
-
+    # ---------------- USER PROBLEMS ----------------
     data = get_problems(st.session_state.token, st.session_state.user)
 
-    if isinstance(data, list) and len(data) > 0:
+    if isinstance(data, list):
 
         for row in data:
 
-            st.markdown(f"""
-            <div style="padding:15px;border-radius:10px;border:1px solid #ddd;margin-bottom:10px;">
-                <b>🚧 {row['problem']}</b><br>
-                👍 {row.get('votes', 0)} votes
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown(f"### 🚧 {row['problem']}")
+            st.write(f"👍 {row.get('votes', 0)} votes")
 
             col1, col2, col3 = st.columns(3)
 
@@ -110,7 +75,7 @@ def show_dashboard():
             # 🚀 BUILD + PAYMENT
             with col3:
 
-                # 🚀 BUILD
+                # BUILD
                 if st.button("🚀 Build", key=f"b{row['id']}"):
 
                     if not is_pro and build_count >= 3:
@@ -125,7 +90,7 @@ def show_dashboard():
                         )
                         st.rerun()
 
-                # 💳 PAYMENT
+                # PAYMENT
                 if not is_pro and build_count >= 3:
 
                     if st.button("💳 Pay Now", key=f"pay_{row['id']}"):
@@ -133,57 +98,56 @@ def show_dashboard():
                         try:
                             res = requests.post(
                                 "https://payment-server-f778.onrender.com/create-order",
-                                json={"user_id": st.session_state.user}
+                                json={"user_id": st.session_state.user},
+                                timeout=10
                             )
 
                             data = res.json()
 
-                            order_id = data.get("id") or data.get("order_id")
+                            order_id = data.get("order_id")
 
                             if not order_id:
                                 st.error("❌ Order ID missing")
                                 st.json(data)
+                                return
 
-                            else:
-                                st.success("✅ Order Created!")
+                            st.success("✅ Order Created!")
 
-                                checkout_html = f"""
-                                <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-                                <script>
-                                var options = {{
-                                    "key": "rzp_live_Sk3uDNJeDvuR3s",
-                                    "amount": "29900",
-                                    "currency": "INR",
-                                    "name": "AI Startup Builder",
-                                    "description": "Upgrade to Pro",
-                                    "order_id": "{order_id}",
-                                    "handler": function (response){{
-                                        alert("Payment Successful! ID: " + response.razorpay_payment_id);
-                                    }}
-                                }};
-                                var rzp = new Razorpay(options);
-                                rzp.open();
-                                </script>
-                                """
+                            # 🔥 Razorpay popup
+                            checkout_html = f"""
+                            <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+                            <script>
+                            var options = {{
+                                "key": "rzp_live_Sk3uDNJeDvuR3s",
+                                "amount": "29900",
+                                "currency": "INR",
+                                "name": "AI Startup Builder",
+                                "description": "Upgrade to Pro",
+                                "order_id": "{order_id}",
+                                "handler": function (response){{
+                                    alert("Payment Successful!");
+                                }}
+                            }};
+                            var rzp = new Razorpay(options);
+                            rzp.open();
+                            </script>
+                            """
 
-                                components.html(checkout_html, height=0)
+                            components.html(checkout_html, height=0)
 
                         except Exception as e:
                             st.error(f"Payment error: {e}")
 
-            # ---- SHOW PLAN ----
+            # ---------------- SHOW PLAN ----------------
             if row["id"] in st.session_state.generated_plans:
 
                 if not is_pro and build_count >= 3:
-                    st.warning("🔒 Upgrade to view this startup plan")
+                    st.warning("🔒 Upgrade to view this plan")
                     continue
 
                 st.write(st.session_state.generated_plans[row["id"]])
 
-    else:
-        st.info("No problems found")
-
-    # ---- LOGOUT ----
+    # LOGOUT
     if st.button("Logout"):
         st.session_state.user = None
         st.session_state.token = None
@@ -215,9 +179,7 @@ else:
                 if not profile:
                     insert_profile(user_id, "User", "", st.session_state.token)
 
-                st.session_state.name = "User"
                 st.rerun()
-
             else:
                 st.error("Invalid login")
 
