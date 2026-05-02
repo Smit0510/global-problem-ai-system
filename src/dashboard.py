@@ -132,9 +132,10 @@ def show_dashboard():
                             rzp.open();
                             </script>
                             """
+                            st.write("Opening payment popup...")
 
-                            components.html(checkout_html, height=0)
-
+                            components.html(checkout_html, height=500)
+                            
                         except Exception as e:
                             st.error(f"Payment error: {e}")
 
